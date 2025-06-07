@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./modulink-py
+        working-directory: . # Changed from ./modulink-py
     strategy:
       fail-fast: false
       matrix:
@@ -52,7 +52,7 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'release' && github.event.payload.release.body != null && contains(github.event.payload.release.body, 'modulink-py'))
     defaults:
       run:
-        working-directory: ./modulink-py
+        working-directory: . # Changed from ./modulink-py
 
     steps:
       - name: Checkout repository
@@ -75,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
-          path: modulink-py/dist/
+          path: dist/ # Changed from modulink-py/dist/
 
   publish-to-pypi:
     name: Publish package to PyPI
