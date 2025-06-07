@@ -1,0 +1,294 @@
+Metadata-Version: 2.4
+Name: modulink-py
+Version: 1.0.0
+Summary: A Python library for building modular applications with unified triggers
+Home-page: https://github.com/JoshuaWink/modulink-py
+Author: Orchestrate LLC
+Author-email: support@orchestrate.dev
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
+Classifier: Topic :: System :: Systems Administration
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.104.0
+Requires-Dist: uvicorn>=0.24.0
+Requires-Dist: apscheduler>=3.10.0
+Requires-Dist: click>=8.1.0
+Requires-Dist: pydantic>=2.5.0
+Requires-Dist: typing-extensions>=4.8.0
+Requires-Dist: pytest>=7.4.0
+Requires-Dist: pytest-cov>=4.1.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# ModuLink Python 🐍
+
+A modular function chain framework for Python, inspired by extreme modularity principles where functions are "links" and middleware are "fittings" in a composable chain architecture.
+
+## 🌟 Core Philosophy
+
+- **Functions as Links**: Each function is a discrete, swappable component
+- **Middleware as Fittings**: Middleware connects and transforms data between functions
+- **Extreme Modularity**: Everything is composable and replaceable
+- **Context Flow**: Rich context object carries data, metadata, and state through chains
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+### Basic Usage
+
+```python
+from modulink import ModuLink, Context
+
+# Create a ModuLink instance
+app = ModuLink()
+
+# Define a simple function
+def greet(ctx: Context) -> Context:
+    name = ctx.data.get('name', 'World')
+    ctx.data['message'] = f"Hello, {name}!"
+    return ctx
+
+# Register and trigger
+app.register('greet', greet)
+result = app.chain(['greet'], Context.from_data({'name': 'Alice'}))
+print(result.data['message'])  # "Hello, Alice!"
+```
+
+### Using Default Instance
+
+```python
+from modulink import when, chain, Context
+
+# Define functions
+def validate_user(ctx: Context) -> Context:
+    if not ctx.data.get('email'):
+        ctx.add_error('Email is required')
+    return ctx
+
+def send_welcome(ctx: Context) -> Context:
+    if not ctx.has_errors():
+        ctx.data['sent'] = True
+        print(f"Welcome email sent to {ctx.data['email']}")
+    return ctx
+
+# Create a chain using the default instance
+@when.http('/register', method='POST')
+def user_registration(ctx: Context) -> Context:
+    return chain(['validate_user', 'send_welcome'], ctx)
+```
+
+## 🔧 Triggers
+
+ModuLink supports multiple trigger types for different execution contexts:
+
+### HTTP Triggers (FastAPI)
+
+```python
+from modulink import ModuLink
+from fastapi import FastAPI
+
+app = ModuLink()
+fastapi_app = FastAPI()
+
+@app.when.http('/api/process', method='POST')
+def process_data(ctx: Context) -> Context:
+    # Your processing logic
+    return ctx
+
+# Mount ModuLink routes to FastAPI
+fastapi_app.mount("/", app.get_fastapi_router())
+```
+
+### Cron Triggers (APScheduler)
+
+```python
+@app.when.cron('0 9 * * *')  # Daily at 9 AM
+def daily_report(ctx: Context) -> Context:
+    ctx.data['report'] = generate_daily_report()
+    return ctx
+
+# Start the scheduler
+app.start_scheduler()
+```
+
+### CLI Triggers (Click)
+
+```python
+@app.when.cli('process-files')
+@click.option('--input-dir', required=True)
+@click.option('--output-dir', required=True)
+def process_files(ctx: Context, input_dir: str, output_dir: str) -> Context:
+    ctx.data.update({'input_dir': input_dir, 'output_dir': output_dir})
+    return chain(['validate_dirs', 'process_files', 'cleanup'], ctx)
+
+# Run CLI: python -m modulink process-files --input-dir ./data --output-dir ./results
+```
+
+### Message Triggers
+
+```python
+@app.when.message('user.created')
+def handle_user_created(ctx: Context) -> Context:
+    user_data = ctx.data['payload']
+    return chain(['send_welcome_email', 'create_user_profile'], ctx)
+```
+
+## 📊 Context Object
+
+The Context object carries data, metadata, and state through function chains:
+
+```python
+from modulink import Context
+
+# Create context with data
+ctx = Context.from_data({'user_id': 123, 'action': 'login'})
+
+# Add metadata
+ctx.set_metadata('source', 'web_app')
+ctx.set_metadata('timestamp', datetime.utcnow())
+
+# Track steps and timing
+ctx.start_step('authentication')
+# ... do auth work ...
+ctx.end_step('authentication')
+
+# Handle errors
+ctx.add_error('Invalid credentials', 'AUTH_ERROR')
+
+# Check state
+if ctx.has_errors():
+    print("Errors occurred:", ctx.get_errors())
+
+# Access timing data
+print("Step timings:", ctx.get_step_timings())
+
+# Serialize for logging/storage
+ctx_json = ctx.to_json()
+restored_ctx = Context.from_json(ctx_json)
+```
+
+## 🧩 Middleware
+
+Middleware functions as "fittings" that can transform data between function links:
+
+```python
+def logging_middleware(ctx: Context) -> Context:
+    """Log all function calls"""
+    step_name = ctx.metadata.get('current_step', 'unknown')
+    print(f"Executing step: {step_name}")
+    return ctx
+
+def error_handling_middleware(ctx: Context) -> Context:
+    """Standardize error handling"""
+    if ctx.has_errors():
+        ctx.set_metadata('error_handled', True)
+        # Could send to error tracking service
+    return ctx
+
+# Apply middleware globally
+app.use(logging_middleware)
+app.use(error_handling_middleware)
+```
+
+## 📁 Project Structure
+
+```
+modulink-py/
+├── modulink/
+│   ├── __init__.py      # Package exports and default instance
+│   ├── context.py       # Context class implementation
+│   ├── modulink.py      # Main ModuLink class
+│   └── triggers.py      # Trigger providers
+├── examples/
+│   ├── basic_example.py
+│   ├── fastapi_example.py
+│   └── cli_example.py
+├── tests/
+│   ├── test_context.py
+│   ├── test_modulink.py
+│   └── test_triggers.py
+├── docs/
+└── README.md
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run with coverage
+python -m pytest tests/ --cov=modulink
+```
+
+## 📚 Examples
+
+Check the `examples/` directory for:
+- Basic function chaining
+- FastAPI integration
+- CLI applications
+- Cron job scheduling
+- Function replacement demos
+
+## 🔍 Migration from JavaScript
+
+If you're migrating from modulink-js, see our [Migration Guide](docs/migration-from-js.md) for key differences and conversion patterns.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Run the test suite
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🏗️ Architecture
+
+ModuLink Python follows the same architectural principles as the JavaScript version:
+
+- **Registry Pattern**: Functions are registered by name for dynamic replacement
+- **Chain Execution**: Functions execute in sequence with context passing
+- **Trigger Abstraction**: Multiple trigger types (HTTP, Cron, CLI, Message)
+- **Middleware Pipeline**: Global middleware applies to all chains
+- **Context Flow**: Rich context object maintains state and metadata
+
+The Python implementation leverages:
+- **FastAPI** for HTTP triggers and routing
+- **APScheduler** for cron-based scheduling
+- **Click** for CLI command interfaces
+- **asyncio** support for async function chains
+- **Type hints** for better development experience
