@@ -1,416 +1,250 @@
 """
-ModuLink Python Default Trigger Providers
+ModuLink Standalone Triggers
 
-Default implementations for cron, message, and CLI triggers.
-Users can override these with custom providers.
+Standalone trigger functions that can be used independently of the ModuLink core instance.
+These triggers can be used with any chain function, including the standalone chain function.
 """
 
-from typing import Callable, Any, Dict, Optional, List, Union
-from abc import ABC, abstractmethod
 import asyncio
-import logging
-import warnings
-from datetime import datetime
-
-try:
-    from apscheduler.schedulers.background import BackgroundScheduler
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-    from apscheduler.triggers.cron import CronTrigger
-    HAS_APSCHEDULER = True
-except ImportError:
-    HAS_APSCHEDULER = False
-
-try:
-    import click
-    HAS_CLICK = True
-    ClickGroup = click.Group
-except ImportError:
-    HAS_CLICK = False
-    ClickGroup = Any
+from typing import List, Optional, Any
+from .types import (
+    Ctx, ChainFunction, Trigger,
+    create_http_context, create_cron_context, 
+    create_cli_context, create_message_context
+)
 
 
-logger = logging.getLogger(__name__)
+async def _ensure_async_call(fn, *args, **kwargs):
+    """Ensure a function call is async, handling both sync and async functions."""
+    if asyncio.iscoroutinefunction(fn):
+        return await fn(*args, **kwargs)
+    else:
+        # For sync functions, check if they return a coroutine (like chain functions do)
+        result = fn(*args, **kwargs)
+        if asyncio.iscoroutine(result):
+            return await result
+        return result
 
 
-class TriggerProvider(ABC):
-    """Abstract base class for trigger providers."""
+def http_trigger(path: str, methods: List[str], app=None) -> Trigger:
+    """Create a standalone HTTP trigger for web application endpoints.
     
-    @abstractmethod
-    def setup(self) -> None:
-        """Setup the trigger provider."""
-        pass
+    This function creates a trigger that can integrate with web frameworks
+    independently of the ModuLink core instance. It can be used with any
+    chain function, including the standalone chain function.
     
-    @abstractmethod
-    def cleanup(self) -> None:
-        """Cleanup the trigger provider."""
-        pass
-
-
-class CronTriggerProvider(TriggerProvider):
-    """
-    Default cron trigger provider using APScheduler.
+    Args:
+        path (str): The URL path for the HTTP endpoint.
+        methods (List[str]): List of HTTP methods to accept.
+        app (Any, optional): Web application instance (FastAPI, Flask, etc.).
+                            If not provided, returns a handler that can be
+                            integrated manually.
     
-    Provides scheduling functionality for running function chains
-    on time-based triggers.
-    """
-    
-    def __init__(self):
-        if not HAS_APSCHEDULER:
-            raise ImportError(
-                "APScheduler is required for cron triggers. "
-                "Install with: pip install apscheduler"
-            )
-        # Use BackgroundScheduler for synchronous operation (better for testing)
-        self.scheduler = BackgroundScheduler()
-        self._jobs = {}
-    
-    def setup(self) -> None:
-        """Start the scheduler."""
-        if not self.scheduler.running:
-            self.scheduler.start()
-            logger.info("Cron scheduler started")
-    
-    def cleanup(self) -> None:
-        """Stop the scheduler and cleanup jobs."""
-        if self.scheduler.running:
-            self.scheduler.shutdown()
-            logger.info("Cron scheduler stopped")
-        self._jobs.clear()
-    
-    def schedule(self, expression: str, handler: Callable) -> str:
-        """
-        Schedule a function to run on a cron expression.
+    Returns:
+        Trigger: A function that accepts a ChainFunction and sets up HTTP handling.
         
-        Args:
-            expression: Cron expression (e.g., '0 */5 * * *')
-            handler: Function to execute - will be wrapped to receive Context
-            
-        Returns:
-            Job ID for tracking
-        """
-        try:
-            # Parse cron expression
-            cron_parts = expression.split()
-            
-            # Create wrapper function that creates Context and calls handler
-            def wrapped_handler():
-                from .context import Context
-                ctx = Context.from_cron_job(expression, {})
-                return handler(ctx)
-            
-            # Store reference to original handler for testing
-            wrapped_handler.original_func = handler
-            
-            if len(cron_parts) != 5:
-                # For invalid format, create a job that will be scheduled but won't execute
-                # Use a far future date to avoid actual execution during tests
-                logger.warning(f"Invalid cron expression format: {expression}")
-                from apscheduler.triggers.date import DateTrigger
-                from datetime import datetime, timezone
-                future_date = datetime(2099, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
-                trigger = DateTrigger(run_date=future_date)
-                
-                job = self.scheduler.add_job(
-                    func=wrapped_handler,
-                    trigger=trigger,
-                    id=f"cron_{datetime.now().timestamp()}",
-                    name=f"Cron job: {expression}"
-                )
-            else:
-                minute, hour, day, month, day_of_week = cron_parts
-                
+    Example:
+        >>> from modulink.triggers import http_trigger
+        >>> from modulink.chain import chain
+        >>> 
+        >>> my_chain = chain(auth_link, data_link)
+        >>> trigger = http_trigger("/api/users", ["GET"], app=fastapi_app)
+        >>> await trigger(my_chain, {"service": "users"})
+    """
+    async def trigger_impl(chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None) -> Ctx:
+        if app is None:
+            # Return handler function for manual integration
+            async def manual_handler(request_data):
                 try:
-                    # Let APScheduler handle detailed cron validation
-                    trigger = CronTrigger(
-                        minute=minute,
-                        hour=hour,
-                        day=day,
-                        month=month,
-                        day_of_week=day_of_week
+                    ctx = create_http_context(
+                        request=request_data.get("request"),
+                        method=request_data.get("method", "GET"),
+                        path=path,
+                        query=request_data.get("query", {}),
+                        body=request_data.get("body", {}),
+                        headers=request_data.get("headers", {}),
+                        **(initial_ctx or {})
+                    )
+                    return await _ensure_async_call(chain_fn, ctx)
+                except Exception as error:
+                    ctx = create_http_context(
+                        request=request_data.get("request"),
+                        method=request_data.get("method", "GET"),
+                        path=path,
+                        query=request_data.get("query", {}),
+                        body=request_data.get("body", {}),
+                        headers=request_data.get("headers", {}),
+                        **(initial_ctx or {})
+                    )
+                    ctx["error"] = str(error)
+                    return ctx
+            
+            return {"success": True, "handler": manual_handler, "path": path, "methods": methods}
+        
+        # For FastAPI integration
+        if hasattr(app, 'add_api_route'):
+            async def fastapi_handler(request):
+                try:
+                    body = {}
+                    if hasattr(request, 'json'):
+                        try:
+                            body = await request.json()
+                        except:
+                            body = {}
+                    
+                    ctx = create_http_context(
+                        request=request,
+                        method=request.method,
+                        path=request.url.path,
+                        query=dict(request.query_params),
+                        body=body,
+                        headers=dict(request.headers),
+                        **(initial_ctx or {})
                     )
                     
-                    job = self.scheduler.add_job(
-                        func=wrapped_handler,
-                        trigger=trigger,
-                        id=f"cron_{datetime.now().timestamp()}",
-                        name=f"Cron job: {expression}"
-                    )
+                    result = await _ensure_async_call(chain_fn, ctx)
                     
-                except Exception as trigger_error:
-                    # If APScheduler validation fails, create a date job for the far future
-                    logger.warning(f"Invalid cron expression, scheduling for far future: {expression} - {trigger_error}")
-                    from apscheduler.triggers.date import DateTrigger
-                    from datetime import datetime, timezone
-                    future_date = datetime(2099, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
-                    trigger = DateTrigger(run_date=future_date)
-                    
-                    job = self.scheduler.add_job(
-                        func=wrapped_handler,
-                        trigger=trigger,
-                        id=f"cron_{datetime.now().timestamp()}",
-                        name=f"Cron job: {expression}"
-                    )
+                    if result.get("error"):
+                        return {"error": str(result["error"])}
+                    else:
+                        # Remove internal properties before sending response
+                        response_data = {k: v for k, v in result.items() 
+                                       if k not in ["req", "res"]}
+                        return response_data
+                
+                except Exception as error:
+                    return {"error": str(error)}
             
-            self._jobs[job.id] = job
-            logger.info(f"Scheduled cron job: {expression} -> {job.id}")
-            return job.id
-            
-        except Exception as e:
-            logger.error(f"Failed to schedule cron job '{expression}': {e}")
-            raise
-    
-    def remove_job(self, job_id: str) -> bool:
-        """
-        Remove a scheduled job.
+            for method in methods:
+                app.add_api_route(path, fastapi_handler, methods=[method])
         
-        Args:
-            job_id: Job ID to remove
-            
-        Returns:
-            True if job was removed, False if not found
-        """
-        try:
-            self.scheduler.remove_job(job_id)
-            self._jobs.pop(job_id, None)
-            logger.info(f"Removed cron job: {job_id}")
-            return True
-        except Exception as e:
-            logger.warning(f"Failed to remove cron job '{job_id}': {e}")
-            return False
+        return {"success": True, "path": path, "methods": methods}
     
-    def register(self, expression: str, handler: Callable) -> str:
-        """
-        Register a cron job with direct function handler (for testing).
-        
-        Args:
-            expression: Cron expression
-            handler: Function to execute
-            
-        Returns:
-            Job ID
-        """
-        return self.schedule(expression, handler)
-    
-    def start(self) -> None:
-        """Start the scheduler."""
-        self.setup()
-    
-    def stop(self) -> None:
-        """Stop the scheduler."""
-        self.cleanup()
+    return trigger_impl
 
 
-class MessageTriggerProvider(TriggerProvider):
+def cron_trigger(schedule: str) -> Trigger:
+    """Create a standalone cron trigger for scheduled task execution.
+    
+    This function creates a trigger for scheduled execution that can be used
+    independently of the ModuLink core instance.
+    
+    Args:
+        schedule (str): Cron expression defining when to execute the chain.
+    
+    Returns:
+        Trigger: A function that accepts a ChainFunction and sets up scheduling.
+        
+    Example:
+        >>> from modulink.triggers import cron_trigger
+        >>> from modulink.chain import chain
+        >>> 
+        >>> backup_chain = chain(backup_link, cleanup_link)
+        >>> trigger = cron_trigger("0 2 * * *")  # 2 AM daily
+        >>> result = await trigger(backup_chain, {"backup_type": "full"})
+        >>> # Manual execution: await result["execute"]()
     """
-    Default message trigger provider (placeholder implementation).
-    
-    This is a placeholder that logs warnings. Users should provide
-    their own message broker implementation.
-    """
-    
-    def __init__(self):
-        self._handlers = {}
-    
-    @property
-    def handlers(self) -> Dict[str, Callable]:
-        """Get registered handlers."""
-        return self._handlers
-    
-    def setup(self) -> None:
-        """Setup (no-op for placeholder)."""
-        pass
-    
-    def cleanup(self) -> None:
-        """Cleanup handlers."""
-        self._handlers.clear()
-    
-    def consume(self, topic: str, handler: Callable) -> None:
-        """
-        Register a message handler (placeholder).
-        
-        Args:
-            topic: Message topic
-            handler: Handler function
-        """
-        self._handlers[topic] = handler
-        warnings.warn(
-            f"Message trigger not implemented for topic: {topic}. "
-            "Provide a custom message trigger provider for production use.",
-            UserWarning
-        )
-        logger.warning(
-            f"Message trigger registered but not implemented: {topic}. "
-            "Use a custom provider for real message handling."
-        )
-    
-    def register(self, topic: str, handler: Callable) -> None:
-        """
-        Register a message handler (alias for consume).
-        
-        Args:
-            topic: Message topic
-            handler: Handler function
-        """
-        self.consume(topic, handler)
-    
-    def emit(self, topic: str, message: Dict[str, Any]) -> None:
-        """
-        Emit a message to registered handler.
-        
-        Args:
-            topic: Message topic
-            message: Message data
-        """
-        from .context import Context
-        
-        if topic in self._handlers:
-            handler = self._handlers[topic]
-            # Create context for message
-            ctx = Context.from_message(topic, message)
-            ctx.data['event_type'] = topic
-            ctx.data['payload'] = message
-            handler(ctx)
-        else:
-            logger.warning(f"No handler registered for topic: {topic}")
-    
-    def start(self) -> None:
-        """Start message provider (no-op for placeholder)."""
-        pass
-    
-    def stop(self) -> None:
-        """Stop message provider (no-op for placeholder)."""
-        pass
-    
-    async def publish(self, topic: str, message: Dict[str, Any]) -> None:
-        """
-        Simulate message publishing (for testing).
-        
-        Args:
-            topic: Message topic
-            message: Message data
-        """
-        if topic in self._handlers:
-            handler = self._handlers[topic]
-            await handler(message)
-        else:
-            logger.warning(f"No handler registered for topic: {topic}")
-
-
-class CLITriggerProvider(TriggerProvider):
-    """
-    Default CLI trigger provider using Click.
-    
-    Provides command-line interface functionality for running
-    function chains via CLI commands.
-    """
-    
-    def __init__(self):
-        if not HAS_CLICK:
-            raise ImportError(
-                "Click is required for CLI triggers. "
-                "Install with: pip install click"
-            )
-        self._commands = {}
-        self._cli_group = click.Group()
-    
-    @property
-    def commands(self) -> Dict[str, Callable]:
-        """Get registered commands."""
-        return self._commands
-    
-    def setup(self) -> None:
-        """Setup (no additional setup needed for CLI)."""
-        pass
-    
-    def cleanup(self) -> None:
-        """Cleanup commands."""
-        self._commands.clear()
-    
-    def command(self, name: str, handler: Callable) -> None:
-        """
-        Register a CLI command.
-        
-        Args:
-            name: Command name
-            handler: Handler function
-        """
-        
-        @click.command(name=name)
-        @click.option('--data', '-d', help='JSON data payload', default='{}')
-        @click.pass_context
-        def cli_command(ctx, data):
-            """Execute the ModuLink chain function."""
-            import json
-            import asyncio
-            
+    async def trigger_impl(chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None) -> Ctx:
+        async def execute_job():
             try:
-                data_dict = json.loads(data) if data else {}
-            except json.JSONDecodeError as e:
-                click.echo(f"Error parsing JSON data: {e}", err=True)
-                ctx.exit(1)
-            
+                ctx = create_cron_context(
+                    schedule=schedule,
+                    **(initial_ctx or {})
+                )
+                return await _ensure_async_call(chain_fn, ctx)
+            except Exception as error:
+                return {"error": str(error)}
+        
+        return {"success": True, "schedule": schedule, "execute": execute_job}
+    
+    return trigger_impl
+
+
+def message_trigger(topic: str) -> Trigger:
+    """Create a standalone message trigger for event-driven processing.
+    
+    This function creates a trigger for message/event handling that can be used
+    independently of the ModuLink core instance.
+    
+    Args:
+        topic (str): The topic, queue name, or channel to listen for messages.
+    
+    Returns:
+        Trigger: A function that accepts a ChainFunction and sets up message handling.
+        
+    Example:
+        >>> from modulink.triggers import message_trigger
+        >>> from modulink.chain import chain
+        >>> 
+        >>> user_chain = chain(validate_link, process_user_link)
+        >>> trigger = message_trigger("user.created")
+        >>> result = await trigger(user_chain, {"service": "users"})
+        >>> # Use handler: await result["handler"](message_data)
+    """
+    async def trigger_impl(chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None) -> Ctx:
+        async def message_handler(message: Any):
             try:
-                # Run the async handler
-                result = asyncio.run(handler(data_dict))
-                if hasattr(result, 'to_dict'):
-                    result = result.to_dict()
-                click.echo(json.dumps(result, indent=2, default=str))
-            except Exception as e:
-                click.echo(f"Error executing command: {e}", err=True)
-                ctx.exit(1)
+                ctx = create_message_context(
+                    topic=topic,
+                    message=message,
+                    **(initial_ctx or {})
+                )
+                return await _ensure_async_call(chain_fn, ctx)
+            except Exception as error:
+                return {"error": str(error)}
         
-        self._commands[name] = cli_command
-        self._cli_group.add_command(cli_command)
-        logger.info(f"Registered CLI command: {name}")
+        return {"success": True, "topic": topic, "handler": message_handler}
     
-    def register(self, command: str, handler: Callable) -> None:
-        """
-        Register a CLI command (alias for command).
-        
-        Args:
-            command: Command name
-            handler: Handler function
-        """
-        self._commands[command] = handler
-        
-    def execute(self, command: str, data: Dict[str, Any]) -> "Context":
-        """
-        Execute a registered command.
-        
-        Args:
-            command: Command name
-            data: Command data
-            
-        Returns:
-            Context result
-        """
-        from .context import Context
-        
-        if command not in self._commands:
-            raise ValueError(f"Command '{command}' not found")
-        
-        handler = self._commands[command]
-        ctx = Context.from_cli_command(command, data)
-        ctx.data['command'] = command
-        ctx.data['args'] = data
-        return handler(ctx)
-    
-    def start(self) -> None:
-        """Start CLI provider (no-op)."""
-        pass
-    
-    def stop(self) -> None:
-        """Stop CLI provider (no-op)."""
-        pass
-    
-    def get_cli_group(self):
-        """Get the Click group for running CLI commands."""
-        return self._cli_group
+    return trigger_impl
 
 
-# Default trigger providers
-DEFAULT_TRIGGERS = {
-    'cron': CronTriggerProvider,
-    'message': MessageTriggerProvider,
-    'cli': CLITriggerProvider
+def cli_trigger(command: str) -> Trigger:
+    """Create a standalone CLI trigger for command-line application integration.
+    
+    This function creates a trigger for CLI command handling that can be used
+    independently of the ModuLink core instance.
+    
+    Args:
+        command (str): The command name or identifier for the CLI operation.
+    
+    Returns:
+        Trigger: A function that accepts a ChainFunction and sets up CLI handling.
+        
+    Example:
+        >>> from modulink.triggers import cli_trigger
+        >>> from modulink.chain import chain
+        >>> 
+        >>> deploy_chain = chain(validate_args_link, deploy_link)
+        >>> trigger = cli_trigger("deploy")
+        >>> result = await trigger(deploy_chain, {"environment": "production"})
+        >>> # Use handler: await result["handler"](["--target", "production"])
+    """
+    async def trigger_impl(chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None) -> Ctx:
+        async def command_handler(args: List[str]):
+            try:
+                ctx = create_cli_context(
+                    command=command,
+                    args=args,
+                    **(initial_ctx or {})
+                )
+                return await _ensure_async_call(chain_fn, ctx)
+            except Exception as error:
+                return {"error": str(error)}
+        
+        return {"success": True, "command": command, "handler": command_handler}
+    
+    return trigger_impl
+
+
+# Export dictionary for easy access
+triggers = {
+    "http": http_trigger,
+    "cron": cron_trigger,
+    "message": message_trigger,
+    "cli": cli_trigger
 }
+
+# Export functions individually for direct access
+__all__ = [
+    "http_trigger", "cron_trigger", "message_trigger", "cli_trigger", "triggers"
+]
