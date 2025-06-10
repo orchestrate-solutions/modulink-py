@@ -53,7 +53,8 @@ class ChainInstance:
             if asyncio.iscoroutinefunction(link):
                 return await link(ctx)
             else:
-                return link(ctx)
+                # For sync functions, call them directly and return the result
+                return link(ctx)  # type: ignore
 
         return async_wrapper
 
@@ -75,7 +76,7 @@ class ChainInstance:
                     if asyncio.iscoroutinefunction(middleware):
                         result = await middleware(result)
                     else:
-                        result = middleware(result)
+                        result = middleware(result)  # type: ignore
                 except Exception as e:
                     result = {**result, "error": e}
                     break
@@ -95,7 +96,7 @@ class ChainInstance:
                         if asyncio.iscoroutinefunction(middleware):
                             result = await middleware(result)
                         else:
-                            result = middleware(result)
+                            result = middleware(result)  # type: ignore
                     except Exception as e:
                         result = {**result, "error": e}
                         break

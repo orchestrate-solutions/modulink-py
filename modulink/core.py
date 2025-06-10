@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 try:
     from .connect import CONNECTION_HANDLERS
 except ImportError:
-    CONNECTION_HANDLERS = None
+    CONNECTION_HANDLERS = None  # type: ignore
 
 
 class ModulinkOptions:
@@ -162,7 +162,9 @@ def create_modulink(app=None, options: Optional[ModulinkOptions] = None):
             if asyncio.iscoroutinefunction(link):
                 return await link(ctx)
             else:
-                return link(ctx)
+                # For sync functions, call them directly and return the result
+                # Since this is an async function, mypy knows the return is Awaitable[Ctx]
+                return link(ctx)  # type: ignore
 
         return async_wrapper
 

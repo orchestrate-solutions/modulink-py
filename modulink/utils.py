@@ -1051,7 +1051,7 @@ def parallel(*links: Link) -> Link:
 
 def debounce(delay: float, link: Link) -> Link:
     """Debounce link execution by delay seconds using proper chain functionality."""
-    last_call_time = {"time": 0}
+    last_call_time = {"time": 0.0}  # Use float instead of int
 
     async def debounced_link(ctx: Ctx) -> Ctx:
         current_time = time.time()
@@ -1074,7 +1074,7 @@ def debounce(delay: float, link: Link) -> Link:
 
 def memoize(key_fn: Callable[[Ctx], str], link: Link, ttl: float = 60.0) -> Link:
     """Memoize link execution with TTL using proper chain functionality."""
-    cache = {}
+    cache: Dict[str, Any] = {}
 
     async def memoized_link(ctx: Ctx) -> Ctx:
         cache_key = key_fn(ctx)

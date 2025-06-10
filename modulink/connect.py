@@ -14,13 +14,13 @@ try:
     from fastapi import Request
     from fastapi.responses import JSONResponse
 except ImportError:
-    JSONResponse = None
-    Request = None
+    JSONResponse = None  # type: ignore
+    Request = None  # type: ignore
 
 try:
     import click
 except ImportError:
-    click = None
+    click = None  # type: ignore
 
 
 def _handle_http_connection(modulink, chain_fn, **kwargs):

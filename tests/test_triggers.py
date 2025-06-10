@@ -628,7 +628,7 @@ def test_trigger_function_signatures():
         sig = inspect.signature(trigger)
         params = list(sig.parameters.keys())
 
-        assert "chain_fn" in params
+        assert "target_chain" in params
         assert "initial_ctx" in params
         assert sig.parameters["initial_ctx"].default is None
 
@@ -1261,7 +1261,7 @@ def test_trigger_single_link_principle_compliance():
         sig = inspect.signature(trigger)
         params = list(sig.parameters.keys())
 
-        assert "chain_fn" in params
+        assert "target_chain" in params
         assert "initial_ctx" in params
 
 

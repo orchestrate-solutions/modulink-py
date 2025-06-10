@@ -2,13 +2,30 @@
 ModuLink Standalone Triggers
 
 Standalone trigger functions that can be used independently of the ModuLink core instance.
-These triggers can be used with any chain function, including the standalone chain function.
+These triggers can be used with any chain function, including the standalon    async def trigger_impl(
+        target_chai    async def trigger_impl(
+        target_chain: Chain, initial_ctx: Optional[Ctx] = None
+    ) -> Ctx:
+        async def command_handler(args: List[str]):
+            try:
+                ctx = create_cli_context(
+                    command=command, args=args, **(initial_ctx or {})
+                )
+                return await _ensure_async_call(target_chain, ctx) initial_ctx: Optional[Ctx] = None
+    ) -> Ctx:
+        async def message_handler(message: Any):
+            try:
+                ctx = create_message_context(
+                    topic=topic, message=message, **(initial_ctx or {})
+                )
+                return await _ensure_async_call(target_chain, ctx)unction.
 """
 
 import asyncio
 from typing import Any, List, Optional
 
 from .types import (
+    Chain,
     ChainFunction,
     Ctx,
     Trigger,
@@ -58,7 +75,7 @@ def http_trigger(path: str, methods: List[str], app=None) -> Trigger:
     """
 
     async def trigger_impl(
-        chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None
+        target_chain: Chain, initial_ctx: Optional[Ctx] = None
     ) -> Ctx:
         if app is None:
             # Return handler function for manual integration
@@ -73,7 +90,7 @@ def http_trigger(path: str, methods: List[str], app=None) -> Trigger:
                         headers=request_data.get("headers", {}),
                         **(initial_ctx or {})
                     )
-                    return await _ensure_async_call(chain_fn, ctx)
+                    return await _ensure_async_call(target_chain, ctx)
                 except Exception as error:
                     ctx = create_http_context(
                         request=request_data.get("request"),
@@ -116,7 +133,7 @@ def http_trigger(path: str, methods: List[str], app=None) -> Trigger:
                         **(initial_ctx or {})
                     )
 
-                    result = await _ensure_async_call(chain_fn, ctx)
+                    result = await _ensure_async_call(target_chain, ctx)
 
                     if result.get("error"):
                         return {"error": str(result["error"])}
@@ -161,12 +178,12 @@ def cron_trigger(schedule: str) -> Trigger:
     """
 
     async def trigger_impl(
-        chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None
+        target_chain: Chain, initial_ctx: Optional[Ctx] = None
     ) -> Ctx:
         async def execute_job():
             try:
                 ctx = create_cron_context(schedule=schedule, **(initial_ctx or {}))
-                return await _ensure_async_call(chain_fn, ctx)
+                return await _ensure_async_call(target_chain, ctx)
             except Exception as error:
                 return {"error": str(error)}
 
@@ -198,14 +215,14 @@ def message_trigger(topic: str) -> Trigger:
     """
 
     async def trigger_impl(
-        chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None
+        target_chain: Chain, initial_ctx: Optional[Ctx] = None
     ) -> Ctx:
         async def message_handler(message: Any):
             try:
                 ctx = create_message_context(
                     topic=topic, message=message, **(initial_ctx or {})
                 )
-                return await _ensure_async_call(chain_fn, ctx)
+                return await _ensure_async_call(target_chain, ctx)
             except Exception as error:
                 return {"error": str(error)}
 
@@ -237,14 +254,14 @@ def cli_trigger(command: str) -> Trigger:
     """
 
     async def trigger_impl(
-        chain_fn: ChainFunction, initial_ctx: Optional[Ctx] = None
+        target_chain: Chain, initial_ctx: Optional[Ctx] = None
     ) -> Ctx:
         async def command_handler(args: List[str]):
             try:
                 ctx = create_cli_context(
                     command=command, args=args, **(initial_ctx or {})
                 )
-                return await _ensure_async_call(chain_fn, ctx)
+                return await _ensure_async_call(target_chain, ctx)
             except Exception as error:
                 return {"error": str(error)}
 
