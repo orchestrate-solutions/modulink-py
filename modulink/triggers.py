@@ -24,16 +24,9 @@ These triggers can be used with any chain function, including the standalon    a
 import asyncio
 from typing import Any, List, Optional
 
-from .types import (
-    Chain,
-    ChainFunction,
-    Ctx,
-    Trigger,
-    create_cli_context,
-    create_cron_context,
-    create_http_context,
-    create_message_context,
-)
+from .types import (Chain, ChainFunction, Ctx, Trigger, create_cli_context,
+                    create_cron_context, create_http_context,
+                    create_message_context)
 
 
 async def _ensure_async_call(fn, *args, **kwargs):
