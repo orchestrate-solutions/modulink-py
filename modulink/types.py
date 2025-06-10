@@ -423,7 +423,7 @@ def create_http_context(
     query: Optional[Dict[str, Any]] = None,
     body: Optional[Dict[str, Any]] = None,
     headers: Optional[Dict[str, Any]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Ctx:
     """Create an HTTP-specific ModuLink context for web request processing.
 
@@ -524,7 +524,7 @@ def create_http_context(
         query=query or {},
         body=body or {},
         headers=headers or {},
-        **kwargs
+        **kwargs,
     )
 
 
@@ -597,7 +597,7 @@ def create_cron_context(schedule: str, **kwargs: Any) -> Ctx:
         trigger="cron",
         schedule=schedule,
         scheduled_at=kwargs.get("scheduled_at", get_current_timestamp()),
-        **kwargs
+        **kwargs,
     )
 
 
@@ -688,7 +688,7 @@ def create_cli_context(command: str, args: Optional[list] = None, **kwargs: Any)
         command=command,
         args=args or [],
         invoked_at=kwargs.get("invoked_at", get_current_timestamp()),
-        **kwargs
+        **kwargs,
     )
 
 
@@ -794,7 +794,7 @@ def create_message_context(topic: str, message: Any, **kwargs: Any) -> Ctx:
         topic=topic,
         message=message,
         received_at=kwargs.get("received_at", get_current_timestamp()),
-        **kwargs
+        **kwargs,
     )
 
 

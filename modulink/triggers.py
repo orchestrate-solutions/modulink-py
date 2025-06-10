@@ -24,9 +24,16 @@ These triggers can be used with any chain function, including the standalon    a
 import asyncio
 from typing import Any, List, Optional
 
-from .types import (Chain, ChainFunction, Ctx, Trigger, create_cli_context,
-                    create_cron_context, create_http_context,
-                    create_message_context)
+from .types import (
+    Chain,
+    ChainFunction,
+    Ctx,
+    Trigger,
+    create_cli_context,
+    create_cron_context,
+    create_http_context,
+    create_message_context,
+)
 
 
 async def _ensure_async_call(fn, *args, **kwargs):
@@ -81,7 +88,7 @@ def http_trigger(path: str, methods: List[str], app=None) -> Trigger:
                         query=request_data.get("query", {}),
                         body=request_data.get("body", {}),
                         headers=request_data.get("headers", {}),
-                        **(initial_ctx or {})
+                        **(initial_ctx or {}),
                     )
                     return await _ensure_async_call(target_chain, ctx)
                 except Exception as error:
@@ -92,7 +99,7 @@ def http_trigger(path: str, methods: List[str], app=None) -> Trigger:
                         query=request_data.get("query", {}),
                         body=request_data.get("body", {}),
                         headers=request_data.get("headers", {}),
-                        **(initial_ctx or {})
+                        **(initial_ctx or {}),
                     )
                     ctx["error"] = str(error)
                     return ctx
@@ -123,7 +130,7 @@ def http_trigger(path: str, methods: List[str], app=None) -> Trigger:
                         query=dict(request.query_params),
                         body=body,
                         headers=dict(request.headers),
-                        **(initial_ctx or {})
+                        **(initial_ctx or {}),
                     )
 
                     result = await _ensure_async_call(target_chain, ctx)
