@@ -108,12 +108,14 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_default_fixture_loop_scope = "function"
 addopts = [
     "--strict-markers",
     "--strict-config",
     "--verbose",
 ]
 markers = [
+    "asyncio: marks tests as async tests",
     "slow: marks tests as slow",
     "integration: marks tests as integration tests",
 ]
