@@ -509,34 +509,6 @@ def test_connect_unsupported_connection_type():
         with pytest.raises(ValueError, match="Unsupported connection type"):
             modulink.connect(ConnectionType.HTTP, test_chain)
 
-
-@patch("modulink.types.create_context")
-def test_connect_creates_handler_modulink(mock_create_context):
-    """Test that connect creates proper handler modulink interface."""
-    from modulink.core import create_modulink
-
-    mock_app = Mock()
-    modulink = create_modulink(app=mock_app)
-
-    def test_chain(ctx: Ctx) -> Ctx:
-        return ctx
-
-    with patch("modulink.core.CONNECTION_HANDLERS") as mock_handlers:
-        mock_handler = Mock()
-        mock_handlers.__getitem__.return_value = mock_handler
-        mock_handlers.__contains__.return_value = True  # Fix the 'in' operator
-
-        modulink.connect(ConnectionType.HTTP, test_chain, app=mock_app)
-
-        # Should have been called with handler_modulink that has create_context
-        call_args = mock_handler.call_args
-        handler_modulink = call_args[0][0]
-
-        assert hasattr(handler_modulink, "create_context")
-        assert hasattr(handler_modulink, "app")
-        assert handler_modulink.app is mock_app
-
-
 def test_modulink_instance_attributes():
     """Test ModuLinkInstance has all expected attributes."""
     from modulink.core import create_modulink

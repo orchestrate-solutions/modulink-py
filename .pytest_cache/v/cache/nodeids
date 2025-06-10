@@ -317,6 +317,7 @@
   "tests/test_triggers.py::test_triggers_module_structure",
   "tests/test_triggers.py::test_triggers_single_vs_multiple_links",
   "tests/test_triggers.py::test_triggers_with_single_links",
+  "tests/test_types.py::test_connect_creates_handler_modulink",
   "tests/test_types.py::test_connection_type_enum",
   "tests/test_types.py::test_context_creation_edge_cases",
   "tests/test_types.py::test_context_factory_consistency",
