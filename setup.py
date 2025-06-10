@@ -29,7 +29,7 @@ if os.path.exists(requirements_file):
 
 setup(
     name="modulink-py",
-    version="2.0.0",
+    version="2.0.1",
     author="Orchestrate LLC",
     author_email="support@orchestrate.dev",
     description="A Python library for building modular applications with unified triggers",
