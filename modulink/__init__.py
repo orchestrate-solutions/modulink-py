@@ -41,37 +41,13 @@ Example:
 from .chain import chain
 from .core import create_modulink
 from .triggers import cli_trigger, cron_trigger, http_trigger, message_trigger
-from .types import (
-    Chain,
-    ConnectionType,
-    Ctx,
-    Link,
-    Middleware,
-    Status,
-    Trigger,
-    create_cli_context,
-    create_context,
-    create_cron_context,
-    create_http_context,
-    create_message_context,
-)
-from .utils import (
-    catch_errors,
-    debounce,
-    error_handlers,
-    filter_context,
-    logging,
-    memoize,
-    parallel,
-    performance_tracker,
-    retry,
-    set_values,
-    timing,
-    transform,
-    validate,
-    validators,
-    when,
-)
+from .types import (Chain, ConnectionType, Ctx, Link, Middleware, Status,
+                    Trigger, create_cli_context, create_context,
+                    create_cron_context, create_http_context,
+                    create_message_context)
+from .utils import (catch_errors, debounce, error_handlers, filter_context,
+                    logging, memoize, parallel, performance_tracker, retry,
+                    set_values, timing, transform, validate, validators, when)
 
 
 # For backward compatibility and convenience

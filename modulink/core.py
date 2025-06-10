@@ -9,7 +9,8 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from .types import ChainFunction, ConnectionType, Ctx, Link, MiddlewareFunction, Status
+from .types import (ChainFunction, ConnectionType, Ctx, Link,
+                    MiddlewareFunction, Status)
 
 logger = logging.getLogger(__name__)
 
