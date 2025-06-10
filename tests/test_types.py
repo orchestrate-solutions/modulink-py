@@ -861,6 +861,7 @@ def test_type_compatibility_with_single_links():
     assert asyncio.iscoroutinefunction(chain_func)
     assert not asyncio.iscoroutinefunction(sync_link)
 
+
 @patch("modulink.types.create_context")
 def test_connect_creates_handler_modulink(mock_create_context):
     """Test that connect creates proper handler modulink interface."""

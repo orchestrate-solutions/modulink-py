@@ -509,6 +509,7 @@ def test_connect_unsupported_connection_type():
         with pytest.raises(ValueError, match="Unsupported connection type"):
             modulink.connect(ConnectionType.HTTP, test_chain)
 
+
 def test_modulink_instance_attributes():
     """Test ModuLinkInstance has all expected attributes."""
     from modulink.core import create_modulink
