@@ -6,12 +6,13 @@ Connection functionality is accessed through modulink.connect() rather than stan
 """
 
 from datetime import datetime, timezone
+
 from .types import ConnectionType
 
 # Import these at module level for testability
 try:
-    from fastapi.responses import JSONResponse
     from fastapi import Request
+    from fastapi.responses import JSONResponse
 except ImportError:
     JSONResponse = None
     Request = None
@@ -28,9 +29,11 @@ def _handle_http_connection(modulink, chain_fn, **kwargs):
     for param in required_params:
         if param not in kwargs:
             raise ValueError(f"HTTP connection requires '{param}' parameter")
-    
+
     if JSONResponse is None or Request is None:
-        raise ImportError("FastAPI is required for HTTP connections. Install with: pip install fastapi")
+        raise ImportError(
+            "FastAPI is required for HTTP connections. Install with: pip install fastapi"
+        )
 
     async def handler(request):
         try:
@@ -47,17 +50,18 @@ def _handle_http_connection(modulink, chain_fn, **kwargs):
                 query=dict(request.query_params),
                 payload=body,
                 headers=dict(request.headers),
-                req=request
+                req=request,
             )
             result_ctx = await chain_fn(ctx)
-            return JSONResponse({
-                "success": True,
-                "data": result_ctx
-            })
+            return JSONResponse({"success": True, "data": result_ctx})
         except Exception as err:
-            return JSONResponse({"success": False, "message": str(err)}, status_code=400)
+            return JSONResponse(
+                {"success": False, "message": str(err)}, status_code=400
+            )
 
-    kwargs["app"].add_api_route(kwargs["path"], handler, methods=[kwargs["method"].upper()])
+    kwargs["app"].add_api_route(
+        kwargs["path"], handler, methods=[kwargs["method"].upper()]
+    )
 
 
 def _handle_cron_connection(modulink, chain_fn, **kwargs):
@@ -66,21 +70,25 @@ def _handle_cron_connection(modulink, chain_fn, **kwargs):
     for param in required_params:
         if param not in kwargs:
             raise ValueError(f"Cron connection requires '{param}' parameter")
-    
+
     def job():
         ctx = modulink.create_context(
             trigger="cron",
             schedule=kwargs["cron_expression"],
-            scheduled_at=datetime.now(timezone.utc).isoformat()
+            scheduled_at=datetime.now(timezone.utc).isoformat(),
         )
         try:
             result = chain_fn(ctx)
-            print(f"[CRON] ran {chain_fn.__name__} at {datetime.now(timezone.utc).isoformat()}")
+            print(
+                f"[CRON] ran {chain_fn.__name__} at {datetime.now(timezone.utc).isoformat()}"
+            )
             print(f"[CRON] result: {result}")
         except Exception as err:
             print(f"[CRON][{chain_fn.__name__}] error: {err}")
 
-    kwargs["scheduler"].add_job(job, "cron", **_parse_cron_expression(kwargs["cron_expression"]))
+    kwargs["scheduler"].add_job(
+        job, "cron", **_parse_cron_expression(kwargs["cron_expression"])
+    )
 
 
 def _handle_cli_connection(modulink, chain_fn, **kwargs):
@@ -89,9 +97,11 @@ def _handle_cli_connection(modulink, chain_fn, **kwargs):
     for param in required_params:
         if param not in kwargs:
             raise ValueError(f"CLI connection requires '{param}' parameter")
-    
+
     if click is None:
-        raise ImportError("Click is required for CLI connections. Install with: pip install click")
+        raise ImportError(
+            "Click is required for CLI connections. Install with: pip install click"
+        )
 
     @kwargs["cli_group"].command(kwargs["command_name"])
     @click.option("--filename", "-f", help="File to import")
@@ -101,11 +111,12 @@ def _handle_cli_connection(modulink, chain_fn, **kwargs):
             trigger="cli",
             command=kwargs["command_name"],
             cli_args={"filename": filename},
-            invoked_at=datetime.now(timezone.utc).isoformat()
+            invoked_at=datetime.now(timezone.utc).isoformat(),
         )
         try:
             # Handle both sync and async chain functions
             import asyncio
+
             if asyncio.iscoroutinefunction(chain_fn):
                 result = asyncio.run(chain_fn(ctx))
             else:
@@ -123,13 +134,13 @@ def _handle_message_connection(modulink, chain_fn, **kwargs):
     for param in required_params:
         if param not in kwargs:
             raise ValueError(f"Message connection requires '{param}' parameter")
-    
+
     async def message_handler(message):
         ctx = modulink.create_context(
             trigger="message",
             topic=kwargs["topic"],
             message=message,
-            received_at=datetime.now(timezone.utc).isoformat()
+            received_at=datetime.now(timezone.utc).isoformat(),
         )
         try:
             result = chain_fn(ctx)
@@ -139,12 +150,9 @@ def _handle_message_connection(modulink, chain_fn, **kwargs):
         except Exception as err:
             print(f"[MESSAGE][{kwargs['topic']}] error: {err}")
             raise err
-    
+
     # Return the handler for integration with message systems
-    return {
-        "handler": message_handler,
-        "topic": kwargs["topic"]
-    }
+    return {"handler": message_handler, "topic": kwargs["topic"]}
 
 
 def _parse_cron_expression(expr):
@@ -159,5 +167,5 @@ CONNECTION_HANDLERS = {
     ConnectionType.HTTP: _handle_http_connection,
     ConnectionType.CRON: _handle_cron_connection,
     ConnectionType.CLI: _handle_cli_connection,
-    ConnectionType.MESSAGE: _handle_message_connection
+    ConnectionType.MESSAGE: _handle_message_connection,
 }

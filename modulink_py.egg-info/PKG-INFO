@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: modulink-py
-Version: 1.0.0
+Version: 2.0.0
 Summary: A Python library for building modular applications with unified triggers
 Home-page: https://github.com/JoshuaWink/modulink-py
 Author: Orchestrate LLC
@@ -20,26 +20,28 @@ Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
 Classifier: Topic :: System :: Systems Administration
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Requires-Dist: fastapi>=0.104.0
 Requires-Dist: uvicorn>=0.24.0
 Requires-Dist: apscheduler>=3.10.0
 Requires-Dist: click>=8.1.0
 Requires-Dist: pydantic>=2.5.0
 Requires-Dist: typing-extensions>=4.8.0
-Requires-Dist: pytest>=7.4.0
-Requires-Dist: pytest-cov>=4.1.0
 Provides-Extra: dev
-Requires-Dist: pytest>=7.0.0; extra == "dev"
-Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
-Requires-Dist: black>=23.0.0; extra == "dev"
 Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: isort>=5.12.0; extra == "dev"
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
 Requires-Dist: mypy>=1.0.0; extra == "dev"
+Requires-Dist: pre-commit>=3.0.0; extra == "dev"
 Dynamic: author
 Dynamic: author-email
 Dynamic: classifier
 Dynamic: description
 Dynamic: description-content-type
 Dynamic: home-page
+Dynamic: license-file
 Dynamic: provides-extra
 Dynamic: requires-dist
 Dynamic: requires-python
@@ -47,14 +49,14 @@ Dynamic: summary
 
 # ModuLink Python 🐍
 
-A modular function chain framework for Python, inspired by extreme modularity principles where functions are "links" and middleware are "fittings" in a composable chain architecture.
+A lightweight function composition framework for Python using universal types - simple, consistent patterns that work across multiple languages.
 
 ## 🌟 Core Philosophy
 
-- **Functions as Links**: Each function is a discrete, swappable component
-- **Middleware as Fittings**: Middleware connects and transforms data between functions
-- **Extreme Modularity**: Everything is composable and replaceable
-- **Context Flow**: Rich context object carries data, metadata, and state through chains
+- **Universal Types**: Simple function signatures that work across languages
+- **Functional Composition**: Pure functions connected through context flow
+- **Minimal API**: Only 5 core types you need to learn
+- **Context Flow**: Rich context dictionaries carry data through function chains
 
 ## 🚀 Quick Start
 
@@ -67,157 +69,177 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```python
-from modulink import ModuLink, Context
+from modulink import Ctx, compose
 
-# Create a ModuLink instance
-app = ModuLink()
-
-# Define a simple function
-def greet(ctx: Context) -> Context:
-    name = ctx.data.get('name', 'World')
-    ctx.data['message'] = f"Hello, {name}!"
+# Define simple functions that take context and return context
+async def validate_user(ctx: Ctx) -> Ctx:
+    if not ctx.get('email'):
+        return {**ctx, 'errors': [{'message': 'Email is required', 'code': 'VALIDATION_ERROR'}]}
     return ctx
 
-# Register and trigger
-app.register('greet', greet)
-result = app.chain(['greet'], Context.from_data({'name': 'Alice'}))
-print(result.data['message'])  # "Hello, Alice!"
+async def send_welcome(ctx: Ctx) -> Ctx:
+    if not ctx.get('errors'):
+        print(f"Welcome email sent to {ctx.get('email')}")
+        return {**ctx, 'sent': True}
+    return ctx
+
+# Compose functions into a chain
+user_flow = compose(validate_user, send_welcome)
+
+# Execute with context
+result = await user_flow({'email': 'alice@example.com'})
+print(result)  # {'email': 'alice@example.com', 'sent': True}
 ```
 
-### Using Default Instance
+## 🎯 Universal Types
 
+ModuLink uses 5 simple universal types that create a consistent API:
+
+### 1. **Ctx** - Context Dictionary
 ```python
-from modulink import when, chain, Context
-
-# Define functions
-def validate_user(ctx: Context) -> Context:
-    if not ctx.data.get('email'):
-        ctx.add_error('Email is required')
-    return ctx
-
-def send_welcome(ctx: Context) -> Context:
-    if not ctx.has_errors():
-        ctx.data['sent'] = True
-        print(f"Welcome email sent to {ctx.data['email']}")
-    return ctx
-
-# Create a chain using the default instance
-@when.http('/register', method='POST')
-def user_registration(ctx: Context) -> Context:
-    return chain(['validate_user', 'send_welcome'], ctx)
+# Simple dictionary for passing data
+ctx: Ctx = {
+    'user_id': 123,
+    'email': 'user@example.com',
+    'processed_at': '2024-01-01T12:00:00Z'
+}
 ```
 
-## 🔧 Triggers
-
-ModuLink supports multiple trigger types for different execution contexts:
-
-### HTTP Triggers (FastAPI)
-
+### 2. **Link** - Async Function
 ```python
-from modulink import ModuLink
+# Function that transforms context
+async def process_user(ctx: Ctx) -> Ctx:
+    return {**ctx, 'processed': True}
+```
+
+### 3. **Chain** - Function Composition
+```python
+# Compose multiple links
+from modulink import compose
+
+pipeline = compose(validate_input, process_data, save_result)
+```
+
+### 4. **Trigger** - Event Handler
+```python
+# HTTP endpoint that returns a composed function
+from modulink import http_trigger
+
+@http_trigger('/api/users', method='POST')
+async def handle_user_creation(ctx: Ctx) -> Ctx:
+    return await user_creation_pipeline(ctx)
+```
+
+### 5. **Middleware** - Function Wrapper
+```python
+# Function that wraps other functions
+from modulink import timing
+
+timed_function = timing(process_user)
+```
+
+## 🔧 Functional Utilities
+
+ModuLink provides utilities for common patterns:
+
+### Conditional Execution
+```python
+from modulink import when
+
+# Only execute if condition is met
+premium_flow = when(
+    lambda ctx: ctx.get('user_type') == 'premium',
+    add_premium_features
+)
+```
+
+### Error Handling
+```python
+from modulink import catch_errors
+
+# Gracefully handle errors
+safe_operation = catch_errors(risky_function, fallback_function)
+```
+
+### Timing & Performance
+```python
+from modulink import timing
+
+# Track execution time
+timed_flow = timing(expensive_operation)
+```
+
+### Parallel Execution
+```python
+from modulink import parallel
+
+# Run functions in parallel
+parallel_flow = parallel([process_images, generate_thumbnails, extract_metadata])
+```
+
+## 🌐 Integration Examples
+
+### FastAPI Integration
+```python
 from fastapi import FastAPI
+from modulink import Ctx, compose, catch_errors
 
-app = ModuLink()
-fastapi_app = FastAPI()
+app = FastAPI()
 
-@app.when.http('/api/process', method='POST')
-def process_data(ctx: Context) -> Context:
-    # Your processing logic
-    return ctx
+# Define processing pipeline
+user_pipeline = compose(
+    validate_user_data,
+    save_to_database,
+    send_confirmation_email
+)
 
-# Mount ModuLink routes to FastAPI
-fastapi_app.mount("/", app.get_fastapi_router())
+@app.post("/api/users")
+async def create_user(request_data: dict):
+    # Convert to ModuLink context
+    ctx: Ctx = {'request_data': request_data}
+    
+    # Run pipeline with error handling
+    safe_pipeline = catch_errors(user_pipeline)
+    result = await safe_pipeline(ctx)
+    
+    if result.get('errors'):
+        return {"success": False, "errors": result['errors']}
+    
+    return {"success": True, "user": result.get('user')}
 ```
 
-### Cron Triggers (APScheduler)
-
+### CLI Integration
 ```python
-@app.when.cron('0 9 * * *')  # Daily at 9 AM
-def daily_report(ctx: Context) -> Context:
-    ctx.data['report'] = generate_daily_report()
-    return ctx
+import click
+from modulink import Ctx, compose
 
-# Start the scheduler
-app.start_scheduler()
-```
+# File processing pipeline
+file_pipeline = compose(
+    validate_input_directory,
+    scan_files,
+    process_files,
+    generate_report
+)
 
-### CLI Triggers (Click)
-
-```python
-@app.when.cli('process-files')
+@click.command()
 @click.option('--input-dir', required=True)
 @click.option('--output-dir', required=True)
-def process_files(ctx: Context, input_dir: str, output_dir: str) -> Context:
-    ctx.data.update({'input_dir': input_dir, 'output_dir': output_dir})
-    return chain(['validate_dirs', 'process_files', 'cleanup'], ctx)
-
-# Run CLI: python -m modulink process-files --input-dir ./data --output-dir ./results
-```
-
-### Message Triggers
-
-```python
-@app.when.message('user.created')
-def handle_user_created(ctx: Context) -> Context:
-    user_data = ctx.data['payload']
-    return chain(['send_welcome_email', 'create_user_profile'], ctx)
-```
-
-## 📊 Context Object
-
-The Context object carries data, metadata, and state through function chains:
-
-```python
-from modulink import Context
-
-# Create context with data
-ctx = Context.from_data({'user_id': 123, 'action': 'login'})
-
-# Add metadata
-ctx.set_metadata('source', 'web_app')
-ctx.set_metadata('timestamp', datetime.utcnow())
-
-# Track steps and timing
-ctx.start_step('authentication')
-# ... do auth work ...
-ctx.end_step('authentication')
-
-# Handle errors
-ctx.add_error('Invalid credentials', 'AUTH_ERROR')
-
-# Check state
-if ctx.has_errors():
-    print("Errors occurred:", ctx.get_errors())
-
-# Access timing data
-print("Step timings:", ctx.get_step_timings())
-
-# Serialize for logging/storage
-ctx_json = ctx.to_json()
-restored_ctx = Context.from_json(ctx_json)
-```
-
-## 🧩 Middleware
-
-Middleware functions as "fittings" that can transform data between function links:
-
-```python
-def logging_middleware(ctx: Context) -> Context:
-    """Log all function calls"""
-    step_name = ctx.metadata.get('current_step', 'unknown')
-    print(f"Executing step: {step_name}")
-    return ctx
-
-def error_handling_middleware(ctx: Context) -> Context:
-    """Standardize error handling"""
-    if ctx.has_errors():
-        ctx.set_metadata('error_handled', True)
-        # Could send to error tracking service
-    return ctx
-
-# Apply middleware globally
-app.use(logging_middleware)
-app.use(error_handling_middleware)
+def process_files(input_dir: str, output_dir: str):
+    """Process files using ModuLink pipeline."""
+    
+    ctx: Ctx = {
+        'input_dir': input_dir,
+        'output_dir': output_dir,
+        'start_time': datetime.utcnow().isoformat()
+    }
+    
+    result = await file_pipeline(ctx)
+    
+    if result.get('errors'):
+        print("Processing failed:", result['errors'])
+        exit(1)
+    
+    print("Processing completed successfully!")
 ```
 
 ## 📁 Project Structure
@@ -225,19 +247,17 @@ app.use(error_handling_middleware)
 ```
 modulink-py/
 ├── modulink/
-│   ├── __init__.py      # Package exports and default instance
-│   ├── context.py       # Context class implementation
-│   ├── modulink.py      # Main ModuLink class
-│   └── triggers.py      # Trigger providers
+│   ├── __init__.py              # Package exports
+│   ├── universal.py             # Universal type definitions  
+│   ├── universal_modulink.py    # Core implementation
+│   └── universal_utils.py       # Utility functions
 ├── examples/
-│   ├── basic_example.py
-│   ├── fastapi_example.py
-│   └── cli_example.py
+│   ├── basic_example.py         # Basic usage patterns
+│   ├── cli_example.py          # CLI integration
+│   ├── fastapi_example.py      # FastAPI integration
+│   └── immutable_example.py    # Functional patterns
 ├── tests/
-│   ├── test_context.py
-│   ├── test_modulink.py
-│   └── test_triggers.py
-├── docs/
+│   └── test_universal.py       # Universal types tests
 └── README.md
 ```
 
@@ -245,50 +265,108 @@ modulink-py/
 
 ```bash
 # Run all tests
-python -m pytest tests/
+python -m pytest tests/test_universal.py -v
 
-# Run with coverage
-python -m pytest tests/ --cov=modulink
+# Run examples
+python examples/basic_example.py
+python examples/cli_example.py demo
 ```
 
 ## 📚 Examples
 
-Check the `examples/` directory for:
-- Basic function chaining
-- FastAPI integration
-- CLI applications
-- Cron job scheduling
-- Function replacement demos
+The `examples/` directory contains comprehensive examples:
 
-## 🔍 Migration from JavaScript
+- **`basic_example.py`** - Core patterns and utilities
+- **`cli_example.py`** - Command-line integration with Click
+- **`fastapi_example.py`** - Web API integration with FastAPI
+- **`immutable_example.py`** - Functional programming patterns
+- **`devops_cicd_pipeline.py`** - Complex DevOps CI/CD workflow with comprehensive testing
+- **`financial_trading_system.py`** - Financial trading system with risk management
 
-If you're migrating from modulink-js, see our [Migration Guide](docs/migration-from-js.md) for key differences and conversion patterns.
+## 🧪 Testing Guide
+
+ModuLink provides comprehensive testing cookbooks to help you build robust test suites:
+
+### **[📖 Complete Testing Guide](docs/testing-guide-overview.md)**
+Your roadmap to testing ModuLink workflows from simple functions to enterprise systems.
+
+### Learning Path:
+1. **[🌱 Beginner Cookbook](docs/testing-cookbook-beginner.md)** - Start here
+   - Basic testing setup and patterns
+   - Testing individual functions and simple chains
+   - Working with context and common patterns
+
+2. **[🚀 Intermediate Cookbook](docs/testing-cookbook-intermediate.md)** - Level up
+   - Advanced error handling and mocking
+   - Integration testing and async workflows
+   - Performance testing patterns
+
+3. **[🏢 Advanced Cookbook](docs/testing-cookbook-advanced.md)** - Master level
+   - Complex enterprise workflows (DevOps, Financial)
+   - Multi-environment and compliance testing
+   - Comprehensive test architecture
+
+### Real-World Test Examples:
+- **570+ lines** of DevOps CI/CD pipeline tests
+- **400+ lines** of Financial trading system tests
+- Unit, integration, performance, and compliance testing patterns
+- Mock strategies for external services
+- Error handling and recovery testing
+
+## 🔄 Migration from v1.x
+
+ModuLink 2.0 uses universal types instead of classes:
+
+```python
+# v1.x (Legacy - No longer supported)
+from modulink import ModuLink, Context
+app = ModuLink()
+ctx = Context.from_data({'user': 'alice'})
+
+# v2.0 (Universal Types)
+from modulink import Ctx, compose
+ctx: Ctx = {'user': 'alice'}
+pipeline = compose(validate, process, save)
+```
+
+**Key Changes:**
+- ✅ Simple dictionaries instead of Context class
+- ✅ Function composition instead of registration
+- ✅ Consistent API across languages  
+- ✅ Better TypeScript compatibility
+- ✅ Reduced complexity and dependencies
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Add tests for new functionality
-4. Run the test suite
+4. Run the test suite: `python -m pytest tests/test_universal.py -v`
 5. Submit a pull request
 
 ## 📄 License
 
 MIT License - see LICENSE file for details.
 
+## ⚠️ Limitations
+
+- Basic function composition only
+- Limited middleware capabilities
+- No sophisticated execution model
+- Utilities are mostly stubs
+
 ## 🏗️ Architecture
 
-ModuLink Python follows the same architectural principles as the JavaScript version:
+ModuLink Python 2.0 uses universal types for consistency:
 
-- **Registry Pattern**: Functions are registered by name for dynamic replacement
-- **Chain Execution**: Functions execute in sequence with context passing
-- **Trigger Abstraction**: Multiple trigger types (HTTP, Cron, CLI, Message)
-- **Middleware Pipeline**: Global middleware applies to all chains
-- **Context Flow**: Rich context object maintains state and metadata
+- **Context as Data**: Simple dictionaries for maximum compatibility
+- **Function Composition**: Pure functions connected through `compose()`  
+- **Async by Default**: All functions are async for better performance
+- **Language Agnostic**: Same patterns across multiple languages
+- **Minimal Dependencies**: Lightweight with only essential features
 
-The Python implementation leverages:
-- **FastAPI** for HTTP triggers and routing
-- **APScheduler** for cron-based scheduling
-- **Click** for CLI command interfaces
-- **asyncio** support for async function chains
-- **Type hints** for better development experience
+The universal types approach provides:
+- 🚀 **Better Performance**: No class overhead, direct dictionary access
+- 🧪 **Easier Testing**: Pure functions are simple to test
+- 🔧 **Better IDE Support**: Full type hints and autocomplete
+- 🌐 **Cross-Language**: Same patterns across multiple languages
