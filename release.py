@@ -45,19 +45,25 @@ def check_git_status():
 
 
 def get_current_version():
-    """Get current version from setup.py"""
+    """Get current version from pyproject.toml (preferred) or setup.py"""
+    # Try pyproject.toml first (modern approach)
+    pyproject_toml = Path("pyproject.toml")
+    if pyproject_toml.exists():
+        content = pyproject_toml.read_text()
+        match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
+        if match:
+            return match.group(1)
+    
+    # Fallback to setup.py
     setup_py = Path("setup.py")
-    if not setup_py.exists():
-        print("❌ setup.py not found")
-        sys.exit(1)
+    if setup_py.exists():
+        content = setup_py.read_text()
+        match = re.search(r'version=["\']([^"\']+)["\']', content)
+        if match:
+            return match.group(1)
     
-    content = setup_py.read_text()
-    match = re.search(r'version=["\']([^"\']+)["\']', content)
-    if not match:
-        print("❌ Could not find version in setup.py")
-        sys.exit(1)
-    
-    return match.group(1)
+    print("❌ Could not find version in pyproject.toml or setup.py")
+    sys.exit(1)
 
 
 def bump_version(current_version, bump_type):
@@ -94,6 +100,26 @@ def update_version_in_setup_py(new_version):
     
     setup_py.write_text(new_content)
     print(f"✅ Updated setup.py to version {new_version}")
+
+
+def update_version_in_pyproject_toml(new_version):
+    """Update version in pyproject.toml"""
+    pyproject_toml = Path("pyproject.toml")
+    if not pyproject_toml.exists():
+        print("⚠️  pyproject.toml not found, skipping pyproject.toml update")
+        return
+    
+    content = pyproject_toml.read_text()
+    
+    # Replace version in [project] section
+    new_content = re.sub(
+        r'version\s*=\s*["\'][^"\']+["\']',
+        f'version = "{new_version}"',
+        content
+    )
+    
+    pyproject_toml.write_text(new_content)
+    print(f"✅ Updated pyproject.toml to version {new_version}")
 
 
 def update_changelog(new_version, bump_type):
@@ -194,13 +220,14 @@ def main():
     
     # Update version files
     update_version_in_setup_py(new_version)
+    update_version_in_pyproject_toml(new_version)
     update_changelog(new_version, bump_type)
     
     # Run tests
     run_command("python -m pytest tests/ -v", "Running test suite")
     
     # Commit version changes
-    run_command("git add setup.py CHANGELOG.md", "Staging version files")
+    run_command("git add setup.py CHANGELOG.md pyproject.toml", "Staging version files")
     run_command(f'git commit -m "chore: bump version to {new_version}"', "Committing version bump")
     
     # Create tag
