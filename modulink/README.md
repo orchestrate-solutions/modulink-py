@@ -37,7 +37,7 @@ Provides an in-depth view of the directory layout and highlights the role of eac
 
 **Exports**:
 - All core types (`Ctx`, `Link`, `Chain`, `Trigger`, `Middleware`)
-- All utility functions (`chain`, `compose`, `when`, etc.)
+- All utility functions (`chain`, `when`, etc.)
 - Error handling classes (`ErrorHandlers`, `Validators`)
 
 **Dependencies**: 
@@ -144,7 +144,6 @@ Provides an in-depth view of the directory layout and highlights the role of eac
 
 #### Chain Creation
 - `chain(*links: Link) -> Chain` - Creates unified chains
-- `compose(*links: Link) -> Chain` - Legacy alias for chain
 
 #### Conditional Logic
 - `when(predicate, link) -> Link` - Conditional execution

@@ -20,7 +20,7 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```python
-from modulink import Ctx, compose
+from modulink import Ctx, chain
 
 # Define simple functions that take context and return context
 async def validate_user(ctx: Ctx) -> Ctx:
@@ -35,7 +35,7 @@ async def send_welcome(ctx: Ctx) -> Ctx:
     return ctx
 
 # Compose functions into a chain
-user_flow = compose(validate_user, send_welcome)
+user_flow = chain(validate_user, send_welcome)
 
 # Execute with context
 result = await user_flow({'email': 'alice@example.com'})
@@ -66,9 +66,9 @@ async def process_user(ctx: Ctx) -> Ctx:
 ### 3. **Chain** - Function Composition
 ```python
 # Compose multiple links
-from modulink import compose
+from modulink import chain
 
-pipeline = compose(validate_input, process_data, save_result)
+pipeline = chain(validate_input, process_data, save_result)
 ```
 
 ### 4. **Trigger** - Event Handler
@@ -133,12 +133,12 @@ parallel_flow = parallel([process_images, generate_thumbnails, extract_metadata]
 ### FastAPI Integration
 ```python
 from fastapi import FastAPI
-from modulink import Ctx, compose, catch_errors
+from modulink import Ctx, chain, catch_errors
 
 app = FastAPI()
 
 # Define processing pipeline
-user_pipeline = compose(
+user_pipeline = chain(
     validate_user_data,
     save_to_database,
     send_confirmation_email
@@ -162,10 +162,10 @@ async def create_user(request_data: dict):
 ### CLI Integration
 ```python
 import click
-from modulink import Ctx, compose
+from modulink import Ctx, chain
 
 # File processing pipeline
-file_pipeline = compose(
+file_pipeline = chain(
     validate_input_directory,
     scan_files,
     process_files,
@@ -275,9 +275,9 @@ app = ModuLink()
 ctx = Context.from_data({'user': 'alice'})
 
 # v2.0 (Universal Types)
-from modulink import Ctx, compose
+from modulink import Ctx, chain
 ctx: Ctx = {'user': 'alice'}
-pipeline = compose(validate, process, save)
+pipeline = chain(validate, process, save)
 ```
 
 **Key Changes:**
@@ -311,7 +311,7 @@ MIT License - see LICENSE file for details.
 ModuLink Python 2.0 uses universal types for consistency:
 
 - **Context as Data**: Simple dictionaries for maximum compatibility
-- **Function Composition**: Pure functions connected through `compose()`  
+- **Function Composition**: Pure functions connected through `chain()`
 - **Async by Default**: All functions are async for better performance
 - **Language Agnostic**: Same patterns across multiple languages
 - **Minimal Dependencies**: Lightweight with only essential features
