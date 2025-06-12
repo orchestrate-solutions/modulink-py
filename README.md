@@ -128,6 +128,21 @@ from modulink import parallel
 parallel_flow = parallel([process_images, generate_thumbnails, extract_metadata])
 ```
 
+### Interactive Object Discovery
+```python
+from modulink import discover
+
+def greet(name: str) -> str:
+    """Return a friendly greeting."""
+    return f"Hello {name}"
+
+# Print info to the console
+discover(greet)
+
+# Get info string for IDE hover tooltips
+tooltip = discover(greet, show=False)
+```
+
 ## 🌐 Integration Examples
 
 ### FastAPI Integration
@@ -202,11 +217,6 @@ modulink-py/
 │   ├── universal.py             # Universal type definitions  
 │   ├── universal_modulink.py    # Core implementation
 │   └── universal_utils.py       # Utility functions
-├── examples/
-│   ├── basic_example.py         # Basic usage patterns
-│   ├── cli_example.py          # CLI integration
-│   ├── fastapi_example.py      # FastAPI integration
-│   └── immutable_example.py    # Functional patterns
 ├── tests/
 │   └── test_universal.py       # Universal types tests
 └── README.md
@@ -218,21 +228,8 @@ modulink-py/
 # Run all tests
 python -m pytest tests/test_universal.py -v
 
-# Run examples
-python examples/basic_example.py
-python examples/cli_example.py demo
 ```
 
-## 📚 Examples
-
-The `examples/` directory contains comprehensive examples:
-
-- **`basic_example.py`** - Core patterns and utilities
-- **`cli_example.py`** - Command-line integration with Click
-- **`fastapi_example.py`** - Web API integration with FastAPI
-- **`immutable_example.py`** - Functional programming patterns
-- **`devops_cicd_pipeline.py`** - Complex DevOps CI/CD workflow with comprehensive testing
-- **`financial_trading_system.py`** - Financial trading system with risk management
 
 ## 🧪 Testing Guide
 
