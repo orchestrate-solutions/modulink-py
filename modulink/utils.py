@@ -1189,3 +1189,42 @@ class Validators:
 # Create instances for convenience
 error_handlers = ErrorHandlers()
 validators = Validators()
+
+# Discover function added by codex
+
+def discover(obj: Any, *, show: bool = True) -> str:
+    """Dynamically inspect an object and return formatted documentation.
+
+    This utility is similar to Python's :func:`help` but returns the
+    documentation string so IDEs like VSCode can display it when hovering
+    over the result in interactive sessions.
+
+    Args:
+        obj: The object, function or module to inspect.
+        show: If ``True`` (default), print the documentation to the console.
+
+    Returns:
+        A string containing the object's signature (if available) and
+        docstring. This string can be assigned or returned to expose the
+        information to editor tooltips.
+    """
+
+    import inspect
+
+    signature = ""
+    if inspect.isfunction(obj) or inspect.ismethod(obj):
+        try:
+            signature = str(inspect.signature(obj))
+        except (TypeError, ValueError):
+            signature = "()"
+        header = f"{getattr(obj, '__name__', str(obj))}{signature}"
+    else:
+        header = getattr(obj, '__name__', str(obj))
+
+    doc = inspect.getdoc(obj) or ""
+    info = f"{header}\n\n{doc}"
+
+    if show:
+        print(info)
+
+    return info

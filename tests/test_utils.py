@@ -900,3 +900,26 @@ async def test_real_world_usage_patterns():
     assert result["user_data"]["original"]["name"] == "Alice"
     assert "auth_token" not in result  # Filtered out
     assert result["request_id"] == "req_123"
+
+
+def test_discover_function_signature_and_docstring():
+    """Ensure discover returns function signature and docstring."""
+    from modulink.utils import discover
+
+    def sample_fn(a: int, b: str = "") -> bool:
+        """Example docstring."""
+        return bool(a and b)
+
+    info = discover(sample_fn, show=False)
+    assert "sample_fn" in info
+    assert "a: int" in info
+    assert "Example docstring" in info
+
+
+def test_discover_module_docstring():
+    """Ensure discover works with modules."""
+    from modulink.utils import discover
+    import modulink.utils as utils
+
+    info = discover(utils, show=False)
+    assert "ModuLink Type System Utilities" in info

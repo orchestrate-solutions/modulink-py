@@ -71,6 +71,7 @@ from .utils import (
     validate,
     validators,
     when,
+    discover,
 )
 
 
@@ -119,6 +120,7 @@ __all__ = [
     "debounce",
     "retry",
     "catch_errors",
+    "discover",
     # Helper classes
     "validators",
     "error_handlers",
