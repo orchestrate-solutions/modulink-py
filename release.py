@@ -3,6 +3,7 @@
 Release Script for ModuLink-Py
 Handles version bumping and release workflow
 Usage: python release.py [patch|minor|major]
+Defaults to major version bump if no argument is provided
 """
 
 import sys
@@ -92,6 +93,73 @@ def bump_version(current_version, bump_type):
         sys.exit(1)
 
     return f"{major}.{minor}.{patch}"
+
+
+def validate_version_bump(current_version, new_version, bump_type):
+    """Validate that the version bump is reasonable and not skipping versions"""
+    current_parts = list(map(int, current_version.split(".")))
+    new_parts = list(map(int, new_version.split(".")))
+    
+    current_major, current_minor, current_patch = current_parts
+    new_major, new_minor, new_patch = new_parts
+    
+    # Check for reasonable version progression
+    if bump_type == "major":
+        expected_major = current_major + 1
+        if new_major != expected_major:
+            print(f"❌ Invalid major version bump!")
+            print(f"   Current: {current_version}")
+            print(f"   Expected: {expected_major}.0.0")
+            print(f"   Got: {new_version}")
+            print(f"   This would skip from version {current_major} to {new_major}")
+            return False
+        if new_minor != 0 or new_patch != 0:
+            print(f"❌ Major version bump should reset minor and patch to 0")
+            return False
+    
+    elif bump_type == "minor":
+        if new_major != current_major:
+            print(f"❌ Minor version bump should not change major version")
+            print(f"   Current: {current_version}")
+            print(f"   Expected: {current_major}.{current_minor + 1}.0")
+            print(f"   Got: {new_version}")
+            return False
+        expected_minor = current_minor + 1
+        if new_minor != expected_minor:
+            print(f"❌ Invalid minor version bump!")
+            print(f"   This would skip from {current_major}.{current_minor}.x to {current_major}.{new_minor}.x")
+            return False
+        if new_patch != 0:
+            print(f"❌ Minor version bump should reset patch to 0")
+            return False
+    
+    elif bump_type == "patch":
+        if new_major != current_major or new_minor != current_minor:
+            print(f"❌ Patch version bump should not change major or minor version")
+            return False
+        expected_patch = current_patch + 1
+        if new_patch != expected_patch:
+            print(f"❌ Invalid patch version bump!")
+            print(f"   This would skip from {current_version} to {new_version}")
+            return False
+    
+    return True
+
+
+def get_latest_git_tag():
+    """Get the latest git tag to compare with current version"""
+    try:
+        result = subprocess.run(
+            "git describe --tags --abbrev=0",
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip().lstrip('v')  # Remove 'v' prefix if present
+    except subprocess.CalledProcessError:
+        # No tags found
+        return None
 
 
 def update_version_in_setup_py(new_version):
@@ -190,11 +258,16 @@ def update_changelog(new_version, bump_type):
 
 def main():
     """Main release function"""
-    if len(sys.argv) != 2 or sys.argv[1] not in ["patch", "minor", "major"]:
+    # Default to major if no argument provided
+    if len(sys.argv) == 1:
+        bump_type = "major"
+        print("💡 No version type specified, defaulting to major version bump")
+    elif len(sys.argv) == 2 and sys.argv[1] in ["patch", "minor", "major"]:
+        bump_type = sys.argv[1]
+    else:
         print("Usage: python release.py [patch|minor|major]")
+        print("If no argument is provided, defaults to major version bump")
         sys.exit(1)
-
-    bump_type = sys.argv[1]
 
     print(f"🚀 Starting {bump_type} release for ModuLink-Py")
 
@@ -203,11 +276,36 @@ def main():
 
     # Get current version
     current_version = get_current_version()
-    print(f"📋 Current version: {current_version}")
+    print(f"📋 Current version in files: {current_version}")
+    
+    # Check latest git tag for comparison
+    latest_tag = get_latest_git_tag()
+    if latest_tag:
+        print(f"📋 Latest git tag: v{latest_tag}")
+        if latest_tag != current_version:
+            print(f"⚠️  WARNING: Version in files ({current_version}) differs from latest tag ({latest_tag})")
+            print("   This might indicate the files were manually updated")
+            proceed = input("   Continue anyway? (yes/no): ").lower()
+            if proceed != "yes":
+                print("❌ Release cancelled")
+                sys.exit(1)
+    else:
+        print("📋 No git tags found - this will be the first tagged release")
 
     # Calculate new version
     new_version = bump_version(current_version, bump_type)
     print(f"📋 New version: {new_version}")
+    
+    # Validate version bump
+    if not validate_version_bump(current_version, new_version, bump_type):
+        print(f"\n❌ Version bump validation failed!")
+        print(f"   This prevents accidentally skipping versions")
+        print(f"   Current: {current_version}")
+        print(f"   Attempted: {new_version}")
+        print(f"   Bump type: {bump_type}")
+        sys.exit(1)
+    
+    print(f"✅ Version bump validation passed")
 
     # Confirm release
     if bump_type == "major":
@@ -233,7 +331,7 @@ def main():
     update_changelog(new_version, bump_type)
 
     # Run tests
-    run_command("python -m pytest tests/ -v", "Running test suite")
+    run_command("python -m pytest modulink/tests/ -v", "Running test suite")
 
     # Commit version changes
     run_command("git add setup.py CHANGELOG.md pyproject.toml", "Staging version files")
