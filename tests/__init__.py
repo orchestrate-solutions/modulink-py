@@ -1,1 +1,1 @@
-"""Test package for ModuLink Python library."""
+# Makes tests a package for unittest discovery

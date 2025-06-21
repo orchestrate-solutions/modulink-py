@@ -45,5 +45,6 @@
   "tests/test_triggers.py::test_reactive_pattern": true,
   "tests/test_utils.py::test_transform_utility": true,
   "tests/test_utils.py::test_set_values_utility": true,
-  "tests/test_utils.py::test_filter_context": true
+  "tests/test_utils.py::test_filter_context": true,
+  "modulink_next/tests/test_cli.py::test_gen_config": true
 }

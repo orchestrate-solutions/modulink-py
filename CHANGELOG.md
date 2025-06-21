@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.0] - 2025-06-21
+### Major Migration
+- Migrated all code, tests, and documentation from `modulink_next` to `modulink`.
+- Updated all import paths and references to use the new `modulink` package structure.
+- All tests passing under the new structure.
+- Breaking changes: old `modulink_next` imports are no longer supported.
+- Version bumped to 3.0.0 to reflect these breaking changes.
+
 All notable changes to ModuLink Python will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
