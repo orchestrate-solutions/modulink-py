@@ -1,13 +1,17 @@
 Metadata-Version: 2.4
 Name: modulink-py
-Version: 2.0.0
+Version: 4.0.0
 Summary: A Python library for building modular applications with unified triggers
-Home-page: https://github.com/JoshuaWink/modulink-py
-Author: Orchestrate LLC
-Author-email: support@orchestrate.dev
+Author-email: Orchestrate LLC <joshua@orchestrate.solutions>
+Maintainer-email: Orchestrate LLC <joshua@orchestrate.solutions>
+License-Expression: Apache-2.0
+Project-URL: Homepage, https://github.com/orchestrate-solutions/modulink-py
+Project-URL: Repository, https://github.com/orchestrate-solutions/modulink-py
+Project-URL: Issues, https://github.com/orchestrate-solutions/modulink-py/issues
+Project-URL: Documentation, https://github.com/orchestrate-solutions/modulink-py#readme
+Keywords: modular,applications,triggers,fastapi,automation,scheduling
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
-Classifier: License :: OSI Approved :: Apache Software License
 Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.8
@@ -15,6 +19,7 @@ Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Classifier: Topic :: Internet :: WWW/HTTP :: HTTP Servers
 Classifier: Topic :: System :: Systems Administration
@@ -37,17 +42,7 @@ Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
 Requires-Dist: pytest-mock>=3.10.0; extra == "dev"
 Requires-Dist: mypy>=1.0.0; extra == "dev"
 Requires-Dist: pre-commit>=3.0.0; extra == "dev"
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: home-page
 Dynamic: license-file
-Dynamic: provides-extra
-Dynamic: requires-dist
-Dynamic: requires-python
-Dynamic: summary
 
 # ModuLink Python 🐍
 
@@ -71,7 +66,7 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```python
-from modulink import Ctx, compose
+from modulink import Ctx, chain
 
 # Define simple functions that take context and return context
 async def validate_user(ctx: Ctx) -> Ctx:
@@ -86,7 +81,7 @@ async def send_welcome(ctx: Ctx) -> Ctx:
     return ctx
 
 # Compose functions into a chain
-user_flow = compose(validate_user, send_welcome)
+user_flow = chain(validate_user, send_welcome)
 
 # Execute with context
 result = await user_flow({'email': 'alice@example.com'})
@@ -117,9 +112,9 @@ async def process_user(ctx: Ctx) -> Ctx:
 ### 3. **Chain** - Function Composition
 ```python
 # Compose multiple links
-from modulink import compose
+from modulink import chain
 
-pipeline = compose(validate_input, process_data, save_result)
+pipeline = chain(validate_input, process_data, save_result)
 ```
 
 ### 4. **Trigger** - Event Handler
@@ -184,12 +179,12 @@ parallel_flow = parallel([process_images, generate_thumbnails, extract_metadata]
 ### FastAPI Integration
 ```python
 from fastapi import FastAPI
-from modulink import Ctx, compose, catch_errors
+from modulink import Ctx, chain, catch_errors
 
 app = FastAPI()
 
 # Define processing pipeline
-user_pipeline = compose(
+user_pipeline = chain(
     validate_user_data,
     save_to_database,
     send_confirmation_email
@@ -213,10 +208,10 @@ async def create_user(request_data: dict):
 ### CLI Integration
 ```python
 import click
-from modulink import Ctx, compose
+from modulink import Ctx, chain
 
 # File processing pipeline
-file_pipeline = compose(
+file_pipeline = chain(
     validate_input_directory,
     scan_files,
     process_files,
@@ -326,9 +321,9 @@ app = ModuLink()
 ctx = Context.from_data({'user': 'alice'})
 
 # v2.0 (Universal Types)
-from modulink import Ctx, compose
+from modulink import Ctx, chain
 ctx: Ctx = {'user': 'alice'}
-pipeline = compose(validate, process, save)
+pipeline = chain(validate, process, save)
 ```
 
 **Key Changes:**
@@ -348,7 +343,7 @@ pipeline = compose(validate, process, save)
 
 ## 📄 License
 
-MIT License - see LICENSE file for details.
+Apache 2.0 - see LICENSE file for details.
 
 ## ⚠️ Limitations
 
@@ -362,7 +357,7 @@ MIT License - see LICENSE file for details.
 ModuLink Python 2.0 uses universal types for consistency:
 
 - **Context as Data**: Simple dictionaries for maximum compatibility
-- **Function Composition**: Pure functions connected through `compose()`  
+- **Function Composition**: Pure functions connected through `chain()`
 - **Async by Default**: All functions are async for better performance
 - **Language Agnostic**: Same patterns across multiple languages
 - **Minimal Dependencies**: Lightweight with only essential features

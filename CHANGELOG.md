@@ -1,9 +1,25 @@
 # Changelog
 
-All notable changes to ModuLink Python will be documented in this file.
+## [4.0.0] - 2025-06-21
+### Major Migration (BREAKING CHANGES)
+- Migrated all code, tests, and documentation from `modulink_next` to `modulink`.
+- All import paths and references now use the new `modulink` package structure.
+- Test suite and CLI updated for new structure.
+- **Breaking changes:**
+    - Old `modulink_next` imports are no longer supported.
+    - Chain architecture refactored for clarity and extensibility.
+    - DateTime API migration: `datetime.utcnow()` → `datetime.now(timezone.utc)`.
+    - Removed obsolete modules and legacy code.
+    - Test structure and CLI entrypoints have changed.
+- Version bumped to 4.0.0 to reflect these breaking changes.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [3.0.0] - 2025-06-21
+### Major Migration
+- Migrated all code, tests, and documentation from `modulink_next` to `modulink`.
+- Updated all import paths and references to use the new `modulink` package structure.
+- All tests passing under the new structure.
+- Breaking changes: old `modulink_next` imports are no longer supported.
+- Version bumped to 3.0.0 to reflect these breaking changes.
 
 ## [2.0.3] - 2025-06-10
 

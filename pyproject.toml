@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modulink-py"
-version = "2.0.3"
+version = "4.0.0"
 description = "A Python library for building modular applications with unified triggers"
 readme = "README.md"
 requires-python = ">=3.8"
