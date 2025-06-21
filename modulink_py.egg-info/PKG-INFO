@@ -381,6 +381,7 @@ python -m modulink.modulink-doc <topic>
 ```
 - Prints documentation for a specific topic (e.g., `chain`, `middleware`, `examples`).
 
+
 ### Example: Run CLI Integration
 ```sh
 python examples/cli_example.py --input-dir ./data --output-dir ./out

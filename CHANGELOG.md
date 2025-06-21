@@ -1,5 +1,6 @@
 # Changelog
 
+
 ## [3.0.0] (BREAKING CHANGES) - 2025-06-21
 
 ### Added
@@ -47,6 +48,28 @@
 - Version consistency between git tags and project files
 - Release workflow to prevent accidental production releases
 - DateTime deprecation warnings and timezone handling
+
+## [4.0.0] - 2025-06-21
+### Major Migration (BREAKING CHANGES)
+- Migrated all code, tests, and documentation from `modulink_next` to `modulink`.
+- All import paths and references now use the new `modulink` package structure.
+- Test suite and CLI updated for new structure.
+- **Breaking changes:**
+    - Old `modulink_next` imports are no longer supported.
+    - Chain architecture refactored for clarity and extensibility.
+    - DateTime API migration: `datetime.utcnow()` → `datetime.now(timezone.utc)`.
+    - Removed obsolete modules and legacy code.
+    - Test structure and CLI entrypoints have changed.
+- Version bumped to 4.0.0 to reflect these breaking changes.
+
+## [3.0.0] - 2025-06-21
+### Major Migration
+- Migrated all code, tests, and documentation from `modulink_next` to `modulink`.
+- Updated all import paths and references to use the new `modulink` package structure.
+- All tests passing under the new structure.
+- Breaking changes: old `modulink_next` imports are no longer supported.
+- Version bumped to 3.0.0 to reflect these breaking changes.
+
 
 ## [2.0.3] - 2025-06-10
 
