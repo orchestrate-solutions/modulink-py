@@ -1,0 +1,93 @@
+name: Manual Release to Production PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to release (e.g., v3.0.0)'
+        required: true
+        type: string
+      confirm:
+        description: 'Type "RELEASE" to confirm production release'
+        required: true
+        type: string
+
+jobs:
+  validate-and-release:
+    name: Validate and Release to Production PyPI
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'RELEASE'
+    
+    environment:
+      name: pypi
+      url: https://pypi.org/p/modulink-py
+    
+    steps:
+    - name: Validate inputs
+      run: |
+        if [[ ! "${{ github.event.inputs.tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "❌ Invalid tag format. Expected format: v1.2.3"
+          exit 1
+        fi
+        echo "✅ Tag format is valid: ${{ github.event.inputs.tag }}"
+    
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.tag }}
+        persist-credentials: false
+    
+    - name: Verify tag exists
+      run: |
+        if ! git tag -l | grep -q "^${{ github.event.inputs.tag }}$"; then
+          echo "❌ Tag ${{ github.event.inputs.tag }} does not exist"
+          exit 1
+        fi
+        echo "✅ Tag ${{ github.event.inputs.tag }} exists"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+    
+    - name: Install pypa/build
+      run: >-
+        python3 -m
+        pip install
+        build
+        --user
+    
+    - name: Build a binary wheel and a source tarball
+      run: python3 -m build
+    
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_TOKEN }}
+        verbose: true
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.tag }}
+        release_name: Release ${{ github.event.inputs.tag }}
+        body: |
+          🎉 **ModuLink-Py ${{ github.event.inputs.tag }} Released!**
+          
+          This release has been published to PyPI and is now available for installation:
+          
+          ```bash
+          pip install modulink-py==${{ github.event.inputs.tag }}
+          ```
+          
+          ## Changes
+          
+          See [CHANGELOG.md](https://github.com/orchestrate-solutions/modulink-py/blob/main/CHANGELOG.md) for detailed changes.
+          
+          ---
+          
+          Released via manual workflow on $(date)
+        draft: false
+        prerelease: false
