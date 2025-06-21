@@ -331,7 +331,7 @@ def main():
     update_changelog(new_version, bump_type)
 
     # Run tests
-    run_command("python -m pytest tests/ -v", "Running test suite")
+    run_command("python -m pytest modulink/tests/ -v", "Running test suite")
 
     # Commit version changes
     run_command("git add setup.py CHANGELOG.md pyproject.toml", "Staging version files")
