@@ -4,5 +4,4 @@ __pycache__/
 *.log
 *.swp
 .DS_Store
-modulink_py.egg-info/
 dist/
