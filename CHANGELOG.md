@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0] - 2025-06-21
+
+### Fixed
+- **CRITICAL**: Fixed package structure issue where `modulink.src` module was not included in published package
+- Updated setuptools configuration to properly include all subpackages using `find` directive
+- Resolved "ModuleNotFoundError: No module named 'modulink.src'" error in v3.0.0
+
+### Changed
+- Updated version to 4.0.0 due to critical package structure fix
+- Excluded test files from distribution package
+
 ## [3.0.0] (BREAKING CHANGES) - 2025-06-21
 
 ### Added
