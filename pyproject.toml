@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modulink-py"
-version = "4.0.0"
+version = "4.0.1"
 description = "A Python library for building modular applications with unified triggers"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -140,7 +140,7 @@ exclude_lines = [
 
 # MyPy configuration
 [tool.mypy]
-python_version = "4.0.0"
+python_version = "4.0.1"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
