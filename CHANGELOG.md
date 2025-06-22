@@ -1,65 +1,8 @@
 # Changelog
 
-<<<<<<< HEAD
-=======
-## [3.0.0] - 2025-06-21
-### Major Migration
-- Migrated all code, tests, and documentation from `modulink_next` to `modulink`.
-- Updated all import paths and references to use the new `modulink` package structure.
-- All tests passing under the new structure.
-- Breaking changes: old `modulink_next` imports are no longer supported.
-- Version bumped to 3.0.0 to reflect these breaking changes.
-
-All notable changes to ModuLink Python will be documented in this file.
->>>>>>> fc1246a (Migrate all references from modulink_next to modulink, update docs, bump version to 3.0.0, and update changelog)
-
-## [3.0.0] (BREAKING CHANGES) - 2025-06-21
-
-### Added
-- Major refactor with enhanced Chain architecture
-- Timezone-aware timestamps (Python 3.13+ compatibility)
-- Comprehensive testing infrastructure (236 tests)
-
-### Changed
-- Migrated from `datetime.utcnow()` to `datetime.now(timezone.utc)`
-- Streamlined connection handlers with proper error handling
-- Enhanced type safety and consistency across modules
-
-### Removed
-- Obsolete documentation and example files
-- Duplicate utility modules and backup files
-
-### Fixed
-- DateTime deprecation warnings
-- Test failures related to timezone handling
-- AttributeError issues with datetime.UTC
-
-
-## [3.0.0] (BREAKING CHANGES) - 2025-06-21
-
-### Added
-- Enhanced release automation with version validation
-- Feature branch testing on TestPyPI
-- Comprehensive version bump validation to prevent skipping versions
-- Git tag comparison for version consistency checking
-
-### Changed
-- **BREAKING**: Migrated all code, tests, and documentation from `modulink_next` to `modulink`
-- **BREAKING**: All import paths now use `modulink` package structure
-- **BREAKING**: DateTime API migration: `datetime.utcnow()` → `datetime.now(timezone.utc)`
-- **BREAKING**: Chain architecture refactored for clarity and extensibility
-- Improved CI/CD workflow with proper TestPyPI/PyPI separation
-- Enhanced release script with validation and error handling
-
-### Removed
-- **BREAKING**: Old `modulink_next` imports no longer supported
-- Obsolete v4.0.0 release (was released in error)
-- Duplicate utility modules and backup files
-
-### Fixed
-- Version consistency between git tags and project files
-- Release workflow to prevent accidental production releases
-- DateTime deprecation warnings and timezone handling
+## [4.0.1] - 2025-06-21
+### Hotfix
+  Issues with the wheel from 4.0.0, this release resolves.
 
 ## [4.0.0] - 2025-06-21
 ### Major Migration (BREAKING CHANGES)
@@ -67,9 +10,7 @@ All notable changes to ModuLink Python will be documented in this file.
 - All import paths and references now use the new `modulink` package structure.
 - Test suite and CLI updated for new structure.
 - **Breaking changes:**
-    - Old `modulink_next` imports are no longer supported.
     - Chain architecture refactored for clarity and extensibility.
-    - DateTime API migration: `datetime.utcnow()` → `datetime.now(timezone.utc)`.
     - Removed obsolete modules and legacy code.
     - Test structure and CLI entrypoints have changed.
 - Version bumped to 4.0.0 to reflect these breaking changes.
