@@ -2,7 +2,7 @@
 """
 Release Script for ModuLink-Py
 Handles version bumping and release workflow
-Usage: python release.py [patch|minor|major]
+Usage: python release.py [patch|minor|major] [--release-notes <str|file>] [--changelog <str|file>] [--yes] [--force]
 Defaults to major version bump if no argument is provided
 """
 
@@ -12,6 +12,7 @@ import json
 import re
 from pathlib import Path
 import shutil
+import argparse
 
 
 def run_command(command, description):
@@ -29,7 +30,24 @@ def run_command(command, description):
         sys.exit(1)
 
 
-def check_git_status():
+def parse_args():
+    parser = argparse.ArgumentParser(description="Release ModuLink-Py with automation-friendly options.")
+    parser.add_argument("bump", nargs="?", choices=["patch", "minor", "major"], default="major", help="Version bump type")
+    parser.add_argument("--release-notes", type=str, help="Release notes (string or @file)")
+    parser.add_argument("--changelog", type=str, help="Changelog entry (string or @file)")
+    parser.add_argument("--yes", action="store_true", help="Auto-confirm all prompts")
+    parser.add_argument("--force", action="store_true", help="Auto-continue on uncommitted changes or version mismatch")
+    parser.add_argument("--rollback", action="store_true", help="Rollback last release")
+    return parser.parse_args()
+
+def read_arg_content(val):
+    if val and val.startswith("@"):
+        with open(val[1:], "r") as f:
+            return f.read()
+    return val
+
+
+def check_git_status(args):
     """Check if working directory is clean"""
     try:
         status = subprocess.run(
@@ -43,10 +61,12 @@ def check_git_status():
             print("📋 Uncommitted changes detected:")
             print(status.stdout)
             print("\n⚠️  Please commit or stash changes before releasing.")
-
-            force = input("Continue anyway? (yes/no): ").lower()
-            if force != "yes":
-                sys.exit(1)
+            if args.force or args.yes:
+                print("--force or --yes provided, continuing despite uncommitted changes.")
+            else:
+                force = input("Continue anyway? (yes/no): ").lower()
+                if force != "yes":
+                    sys.exit(1)
         else:
             print("✅ Working directory is clean")
     except subprocess.CalledProcessError:
@@ -257,6 +277,78 @@ def update_changelog(new_version, bump_type):
     print(f"✅ Updated CHANGELOG.md with version {new_version}")
 
 
+def get_commit_log_since_last_tag():
+    try:
+        last_tag = subprocess.run(
+            "git describe --tags --abbrev=0",
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True
+        ).stdout.strip()
+        if last_tag:
+            log_cmd = f"git log {last_tag}..HEAD --pretty=format:'- %s'"
+        else:
+            log_cmd = "git log --pretty=format:'- %s'"
+        log = subprocess.run(
+            log_cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            check=True
+        ).stdout.strip()
+        return log
+    except subprocess.CalledProcessError:
+        return None
+
+
+def prompt_and_update_file(filename, prompt_text, arg_val=None, auto_changelog=False):
+    if arg_val is not None:
+        content = read_arg_content(arg_val)
+        with open(filename, "w") as f:
+            f.write(content.strip() + "\n")
+        subprocess.run(f"git add {filename}", shell=True)
+        print(f"✅ {filename} updated and staged (from argument).")
+        return
+    if auto_changelog and filename == "CHANGELOG.md":
+        log = get_commit_log_since_last_tag()
+        if log:
+            print("Auto-generating changelog from commit history:")
+            print(log)
+            content = log + "\n"
+            with open(filename, "w") as f:
+                f.write(content)
+            subprocess.run(f"git add {filename}", shell=True)
+            print(f"✅ {filename} updated and staged (auto changelog from git log).")
+            return
+    print(f"\n--- {filename} not staged. Please enter content below. End input with a single '.' on a line ---")
+    print(prompt_text)
+    lines = []
+    while True:
+        line = input()
+        if line.strip() == ".":
+            break
+        lines.append(line)
+    content = "\n".join(lines) + "\n"
+    with open(filename, "w") as f:
+        f.write(content)
+    subprocess.run(f"git add {filename}", shell=True)
+    print(f"✅ {filename} updated and staged.")
+
+def check_release_notes_and_changelog(args):
+    result = subprocess.run("git diff --name-only --cached", shell=True, capture_output=True, text=True)
+    staged = set(result.stdout.strip().splitlines())
+    required = {"release-notes.md", "CHANGELOG.md"}
+    missing = required - staged
+    if missing:
+        for fname in missing:
+            if fname == "release-notes.md":
+                prompt_and_update_file(fname, "Enter release notes for this version:", args.release_notes)
+            elif fname == "CHANGELOG.md":
+                prompt_and_update_file(fname, "Enter changelog entry for this version:", args.changelog, auto_changelog=True)
+    else:
+        print("✅ release-notes.md and CHANGELOG.md are staged for release.")
+
 def rollback_release():
     """Rollback the most recent release commit and tag, and clean build artifacts."""
     def get_latest_tag():
@@ -287,49 +379,34 @@ def rollback_release():
 
 
 def main():
-    """Main release function"""
-    # Default to major if no argument provided
-    if len(sys.argv) == 1:
-        bump_type = "major"
-        print("💡 No version type specified, defaulting to major version bump")
-    elif len(sys.argv) == 2 and sys.argv[1] in ["patch", "minor", "major"]:
-        bump_type = sys.argv[1]
-    else:
-        print("Usage: python release.py [patch|minor|major]")
-        print("If no argument is provided, defaults to major version bump")
-        sys.exit(1)
-
+    args = parse_args()
+    if args.rollback:
+        rollback_release()
+        return
+    check_release_notes_and_changelog(args)
+    bump_type = args.bump
     print(f"🚀 Starting {bump_type} release for ModuLink-Py")
-
-    # Check git status
-    check_git_status()
-
-    # Run tests BEFORE any version bump, build, or file changes
+    check_git_status(args)
     run_command("python -m pytest modulink/tests/ -v", "Running test suite BEFORE release")
-
-    # Get current version
     current_version = get_current_version()
     print(f"📋 Current version in files: {current_version}")
-    
-    # Check latest git tag for comparison
     latest_tag = get_latest_git_tag()
     if latest_tag:
         print(f"📋 Latest git tag: v{latest_tag}")
         if latest_tag != current_version:
             print(f"⚠️  WARNING: Version in files ({current_version}) differs from latest tag ({latest_tag})")
             print("   This might indicate the files were manually updated")
-            proceed = input("   Continue anyway? (yes/no): ").lower()
-            if proceed != "yes":
-                print("❌ Release cancelled")
-                sys.exit(1)
+            if args.force or args.yes:
+                print("--force or --yes provided, continuing despite version mismatch.")
+            else:
+                proceed = input("   Continue anyway? (yes/no): ").lower()
+                if proceed != "yes":
+                    print("❌ Release cancelled")
+                    sys.exit(1)
     else:
         print("📋 No git tags found - this will be the first tagged release")
-
-    # Calculate new version
     new_version = bump_version(current_version, bump_type)
     print(f"📋 New version: {new_version}")
-    
-    # Validate version bump
     if not validate_version_bump(current_version, new_version, bump_type):
         print(f"\n❌ Version bump validation failed!")
         print(f"   This prevents accidentally skipping versions")
@@ -337,55 +414,34 @@ def main():
         print(f"   Attempted: {new_version}")
         print(f"   Bump type: {bump_type}")
         sys.exit(1)
-    
     print(f"✅ Version bump validation passed")
-
-    # Confirm release
     if bump_type == "major":
         print("\n⚠️  MAJOR VERSION RELEASE - This includes breaking changes!")
         print("Breaking changes in this release:")
-        print(
-            "- DateTime API migration (datetime.utcnow() → datetime.now(timezone.utc))"
-        )
+        print("- DateTime API migration (datetime.utcnow() → datetime.now(timezone.utc))")
         print("- Chain architecture refactor")
         print("- Removed obsolete modules")
         print("- Test structure changes")
-
-    confirm = input(
-        f"\nProceed with {bump_type} release {current_version} → {new_version}? (yes/no): "
-    ).lower()
+    if args.yes:
+        print("--yes provided, auto-confirming release.")
+        confirm = "yes"
+    else:
+        confirm = input(f"\nProceed with {bump_type} release {current_version} → {new_version}? (yes/no): ").lower()
     if confirm != "yes":
         print("❌ Release cancelled")
         sys.exit(1)
-
-    # Update version files
     update_version_in_setup_py(new_version)
     update_version_in_pyproject_toml(new_version)
     update_changelog(new_version, bump_type)
-
-    # Build distributions (wheel and sdist)
     run_command("python -m build", "Building wheel and sdist")
-
-    # Commit version changes
     run_command("git add setup.py CHANGELOG.md pyproject.toml", "Staging version files")
-    run_command(
-        f'git commit -m "chore: bump version to {new_version}"',
-        "Committing version bump",
-    )
-
-    # Create tag
+    run_command(f'git commit -m "chore: bump version to {new_version}"', "Committing version bump")
     tag_message = f"Release v{new_version}"
     if bump_type == "major":
         tag_message += " (BREAKING CHANGES)"
-
-    run_command(
-        f'git tag -a v{new_version} -m "{tag_message}"', f"Creating tag v{new_version}"
-    )
-
-    # Push changes and tag
+    run_command(f'git tag -a v{new_version} -m "{tag_message}"', f"Creating tag v{new_version}")
     run_command("git push origin", "Pushing changes")
     run_command(f"git push origin v{new_version}", "Pushing tag")
-
     print(f"\n🎉 Successfully released ModuLink-Py v{new_version}!")
     print(f"📦 Tag: v{new_version}")
     print("🔗 Next steps:")
@@ -393,6 +449,9 @@ def main():
     print("  - Create a GitHub release from the tag")
     print("  - Consider publishing to PyPI if configured")
 
+
+def main_release(*args, **kwargs):
+    main(*args, **kwargs)
 
 if __name__ == "__main__":
     main()
