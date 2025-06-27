@@ -2,10 +2,10 @@
 Backward compatibility module for modulink.src.listeners.
 
 DEPRECATED: Import directly from modulink instead.
-    from modulink import BaseListener  # Preferred
-    from modulink.src.listeners import BaseListener  # Deprecated but supported
+    from modulink.listeners import BaseListener, HttpListener, TcpListener  # Preferred
+    from modulink.src.listeners import BaseListener, HttpListener, TcpListener  # Deprecated but supported
 """
 
-from ..listeners import BaseListener
+from ..listeners import BaseListener, HttpListener, TcpListener
 
-__all__ = ["BaseListener"]
+__all__ = ["BaseListener", "HttpListener", "TcpListener"]

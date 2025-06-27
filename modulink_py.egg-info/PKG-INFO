@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: modulink-py
-Version: 4.0.1
+Version: 4.0.2
 Summary: A Python library for building modular applications with unified triggers
 Author-email: Orchestrate LLC <joshua@orchestrate.solutions>
 Maintainer-email: Orchestrate LLC <joshua@orchestrate.solutions>
@@ -380,7 +380,6 @@ python -m modulink.cli_visualize <path_to_chain_file>
 python -m modulink.modulink-doc <topic>
 ```
 - Prints documentation for a specific topic (e.g., `chain`, `middleware`, `examples`).
-
 
 ### Example: Run CLI Integration
 ```sh

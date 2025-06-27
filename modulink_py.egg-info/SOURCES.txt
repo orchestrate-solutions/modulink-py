@@ -4,9 +4,17 @@ pyproject.toml
 setup.py
 modulink/__init__.py
 modulink/__main__.py
+modulink/_fuzzy_imports.py
+modulink/chain.py
 modulink/cli_visualize.py
+modulink/context.py
+modulink/docs.py
+modulink/graphviz_utils.py
+modulink/link.py
+modulink/listeners.py
+modulink/middleware.py
+modulink/modulink_doc.py
 modulink/src/__init__.py
-modulink/src/_fuzzy_imports.py
 modulink/src/chain.py
 modulink/src/context.py
 modulink/src/docs.py
@@ -14,7 +22,6 @@ modulink/src/graphviz_utils.py
 modulink/src/link.py
 modulink/src/listeners.py
 modulink/src/middleware.py
-modulink/src/modulink_doc.py
 modulink_py.egg-info/PKG-INFO
 modulink_py.egg-info/SOURCES.txt
 modulink_py.egg-info/dependency_links.txt
