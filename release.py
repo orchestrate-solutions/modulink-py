@@ -11,6 +11,7 @@ import subprocess
 import json
 import re
 from pathlib import Path
+import shutil
 
 
 def run_command(command, description):
@@ -254,6 +255,35 @@ def update_changelog(new_version, bump_type):
 
     changelog.write_text("\n".join(lines))
     print(f"✅ Updated CHANGELOG.md with version {new_version}")
+
+
+def rollback_release():
+    """Rollback the most recent release commit and tag, and clean build artifacts."""
+    def get_latest_tag():
+        out = subprocess.run("git describe --tags --abbrev=0", shell=True, capture_output=True, text=True)
+        return out.stdout.strip()
+    tag = get_latest_tag()
+    if not tag:
+        print("No tags found. Nothing to rollback.")
+        sys.exit(1)
+    print(f"Latest tag: {tag}")
+    confirm = input(f"Delete tag {tag} and reset last commit? (yes/no): ").lower()
+    if confirm != "yes":
+        print("Rollback cancelled.")
+        sys.exit(0)
+    run_command(f"git tag -d {tag}", f"Delete local tag {tag}")
+    run_command(f"git push --delete origin {tag}", f"Delete remote tag {tag}")
+    run_command("git reset --hard HEAD~1", "Reset last commit (version bump)")
+    # Clean up build artifacts
+    for artifact in ["dist", "build", "modulink_py.egg-info"]:
+        try:
+            shutil.rmtree(artifact)
+            print(f"✅ Removed {artifact}/")
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            print(f"⚠️  Could not remove {artifact}/: {e}")
+    print("\n🎯 Rollback complete. Repo is now at previous state and all build artifacts are removed.")
 
 
 def main():
