@@ -274,6 +274,9 @@ def main():
     # Check git status
     check_git_status()
 
+    # Run tests BEFORE any version bump, build, or file changes
+    run_command("python -m pytest modulink/tests/ -v", "Running test suite BEFORE release")
+
     # Get current version
     current_version = get_current_version()
     print(f"📋 Current version in files: {current_version}")
@@ -330,8 +333,8 @@ def main():
     update_version_in_pyproject_toml(new_version)
     update_changelog(new_version, bump_type)
 
-    # Run tests
-    run_command("python -m pytest modulink/tests/ -v", "Running test suite")
+    # Build distributions (wheel and sdist)
+    run_command("python -m build", "Building wheel and sdist")
 
     # Commit version changes
     run_command("git add setup.py CHANGELOG.md pyproject.toml", "Staging version files")
