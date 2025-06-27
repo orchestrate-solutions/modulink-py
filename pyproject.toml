@@ -140,7 +140,7 @@ exclude_lines = [
 
 # MyPy configuration
 [tool.mypy]
-python_version = "4.0.2"
+python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

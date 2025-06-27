@@ -1,4 +1,20 @@
-- chore: remove AI release automation system, restore clean ModuLink-py project
+# Changelog
+
+## [4.0.3] - 2025-06-27
+### Removed
+- Complete removal of AI release automation system and all related files
+- Cleaned up project structure to focus solely on core ModuLink functionality
+
+### Changed
+- Restored clean project structure with only core ModuLink components
+- Separated AI automation project into independent repository
+
+## Previous Changes
+## v4.0.2
+- chore: remove AI release automation system, restore clean ModuLink-py project focus
+- fix: correct mypy python_version configuration in pyproject.toml
+
+## Previous Releases
 - chore: automate artifact cleanup in rollback, remove obsolete rollback_release.py
 - refactor: enforce tests run first in release workflow
 - fix: complete backward compatibility and update tests
