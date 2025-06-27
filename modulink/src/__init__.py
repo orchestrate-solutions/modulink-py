@@ -1,22 +1,38 @@
 """
-ModuLink Next: Unified exports and CLI entrypoint
+Backward compatibility package for modulink.src.
 
-This __init__.py exposes all primary ModuLink Next components and CLI utilities for easy import and use.
+DEPRECATED: This package is maintained for backward compatibility only.
+Please migrate to importing directly from the main modulink package:
+
+    # Preferred (new):
+    from modulink import Chain, Context, Link, Middleware, Logging, Timing
+
+    # Deprecated (old, but still supported):
+    from modulink.src.chain import Chain
+    from modulink.src.context import Context
+    from modulink.src.link import Link
+    from modulink.src.middleware import Middleware, Logging, Timing
+
+All modules in this package are re-exports from the main modulink package.
 """
 
-from .chain import *
-from .context import *
-from .docs import *
-from .link import *
-from .listeners import *
-from .middleware import *
+# Re-export all major components for backward compatibility
+from ..chain import Chain
+from ..context import Context
+from ..link import Link, is_link
+from ..middleware import Middleware, Logging, Timing, is_middleware
+from ..listeners import BaseListener
+from ..docs import get_doc
 
-# CLI entrypoint (if using `python -m modulink_next` or similar)
-def main():
-    from . import modulink_doc
-    modulink_doc.main()
-
-__all__ = []
-for mod in (chain, context, docs, link, listeners, middleware):
-    if hasattr(mod, "__all__"):
-        __all__.extend(mod.__all__)
+__all__ = [
+    "Chain",
+    "Context", 
+    "Link",
+    "is_link",
+    "Middleware",
+    "Logging",
+    "Timing",
+    "is_middleware",
+    "BaseListener",
+    "get_doc",
+]
