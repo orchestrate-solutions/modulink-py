@@ -1,8 +1,14 @@
-# ModuLink-Py v4.0.1
+# ModuLink-Py v4.0.3
 
-This release of ModuLink-Py introduces a minimal, composable, and observable async function orchestration ecosystem.
+This release of ModuLink-Py focuses on project cleanup and maintainability, removing experimental AI automation components and restoring the project to its core focus: minimal, composable, and observable async function orchestration.
 
-## Quick Start
+## What's Changed
+
+- **Project Cleanup**: Removed experimental AI release automation system that was extracted to its own repository
+- **Focus Restoration**: Project now contains only core ModuLink functionality for better maintainability
+- **Clean Architecture**: Simplified project structure with clear separation of concerns
+
+## Core ModuLink Features
 
 ```python
 from modulink import Chain, Context
