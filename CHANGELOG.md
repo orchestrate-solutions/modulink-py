@@ -1,5 +1,27 @@
 # Changelog
 
+## [4.0.3] - 2025-06-27
+
+### Added
+- Major refactor with enhanced Chain architecture
+- Timezone-aware timestamps (Python 3.13+ compatibility)
+- Comprehensive testing infrastructure (236 tests)
+
+### Changed
+- Migrated from `datetime.utcnow()` to `datetime.now(timezone.utc)`
+- Streamlined connection handlers with proper error handling
+- Enhanced type safety and consistency across modules
+
+### Removed
+- Obsolete documentation and example files
+- Duplicate utility modules and backup files
+
+### Fixed
+- DateTime deprecation warnings
+- Test failures related to timezone handling
+- AttributeError issues with datetime.UTC
+
+
 ## [4.0.2] - 2025-06-27
 ### Fixed
 - Export HttpListener and TcpListener in public API (previously only BaseListener was available)
