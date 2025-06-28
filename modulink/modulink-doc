@@ -4,7 +4,7 @@
 import argparse
 import os
 import shutil
-from modulink.src.docs import get_doc
+from modulink.docs import get_doc
 
 def main():
     parser = argparse.ArgumentParser(description="Query ModuLink documentation.")
