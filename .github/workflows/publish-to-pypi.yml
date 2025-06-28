@@ -1,5 +1,9 @@
 name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 
+permissions:
+  contents: write
+  packages: write
+
 on:
   push:
     branches:

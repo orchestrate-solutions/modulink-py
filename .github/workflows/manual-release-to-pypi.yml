@@ -1,5 +1,9 @@
 name: Manual Release to Production PyPI
 
+permissions:
+  contents: write
+  packages: write
+
 on:
   workflow_dispatch:
     inputs:
